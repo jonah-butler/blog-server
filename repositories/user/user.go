@@ -18,7 +18,7 @@ type MongoUserRepository struct {
 
 func NewUserRepository(db *mongo.Database) UserRepository {
 	return &MongoUserRepository{
-		collection: db.Collection("user"),
+		collection: db.Collection("users"),
 	}
 }
 
