@@ -11,9 +11,13 @@ import (
 	"time"
 
 	"blog-api/db"
-	handlers "blog-api/handlers/blog"
-	repositories "blog-api/repositories/blog"
-	services "blog-api/services/blog"
+	blogHandler "blog-api/handlers/blog"
+	blogRepo "blog-api/repositories/blog"
+	blogService "blog-api/services/blog"
+
+	userHandler "blog-api/handlers/user"
+	userRepo "blog-api/repositories/user"
+	userService "blog-api/services/user"
 
 	"github.com/joho/godotenv"
 )
@@ -57,18 +61,22 @@ func main() {
 	}
 
 	// initialize repos
-	blogRepo := repositories.NewBlogRepository(db.DB)
+	blogRepo := blogRepo.NewBlogRepository(db.DB)
+	userRepo := userRepo.NewUserRepository(db.DB)
 
 	// initialize services
-	blogService := services.NewBlogService(blogRepo)
+	blogService := blogService.NewBlogService(blogRepo)
+	userService := userService.NewUserService(userRepo)
 
 	// initialize handlers
-	blogController := handlers.NewBlogHandler(blogService)
+	blogHandler := blogHandler.NewBlogHandler(blogService)
+	userHandler := userHandler.NewUserHandler(userService)
 
 	// initialize server
 	mux := http.NewServeMux()
 
-	blogController.RegisterBlogRoutes("/blog", mux)
+	blogHandler.RegisterBlogRoutes("/blog", mux)
+	userHandler.RegisterUserRoutes("/user", mux)
 
 	s := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),

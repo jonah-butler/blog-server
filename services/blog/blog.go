@@ -1,4 +1,4 @@
-package services
+package blog
 
 import (
 	r "blog-api/repositories/blog"

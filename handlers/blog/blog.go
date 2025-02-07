@@ -1,4 +1,4 @@
-package handlers
+package blog
 
 import (
 	r "blog-api/repositories/blog"
