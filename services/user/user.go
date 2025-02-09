@@ -17,4 +17,7 @@ func (s *UserService) GetUser(ctx context.Context) error { return nil }
 
 func (s *UserService) RegisterUser(ctx context.Context) error { return nil }
 
-func (s *UserService) UserLogin(ctx context.Context) error { return nil }
+func (s *UserService) UserLogin(ctx context.Context, payload r.UserLoginPost) error {
+	s.userRepo.UserLogin(ctx, payload)
+	return nil
+}
