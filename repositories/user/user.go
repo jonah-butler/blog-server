@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type UserRepository interface {
 	GetUser(ctx context.Context) error
 	RegisterUser(ctx context.Context) error
-	UserLogin(ctx context.Context, p UserLoginPost) error
+	FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error)
 }
 
 type MongoUserRepository struct {
@@ -28,21 +28,17 @@ func (r *MongoUserRepository) GetUser(ctx context.Context) error { return nil }
 
 func (r *MongoUserRepository) RegisterUser(ctx context.Context) error { return nil }
 
-func (r *MongoUserRepository) UserLogin(ctx context.Context, payload UserLoginPost) error {
-	var user *User
-
+func (r *MongoUserRepository) FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error) {
+	var user UserWithPassword
 	filter := bson.M{"username": payload.Username}
 
-	r.collection.FindOne(ctx, filter).Decode(&user)
-
-	if user == nil {
-		return errors.New("user not found")
+	err := r.collection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
 	}
 
-	isMatch := comparePasswords(user.Password, payload.Password)
-	if !isMatch {
-		return errors.New("invalid password")
-	}
-
-	return nil
+	return &user, nil
 }

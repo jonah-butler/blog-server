@@ -33,5 +33,20 @@ func (h *UserHandler) UserLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	h.userService.UserLogin(req.Context(), login)
+	response, err := h.userService.UserLogin(req.Context(), login)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonData)
+
 }
