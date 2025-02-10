@@ -131,7 +131,7 @@ func (h *BlogHandler) handleRandomBlog(w http.ResponseWriter, req *http.Request)
 	 Retruns array of blogs and hasMore boolean indicating more are available after
 	 the set offset.
 */
-func (c *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Request) {
+func (h *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Request) {
 	category := req.PathValue("category")
 	if category == "" {
 		http.Error(w, fmt.Sprintf("Not a valid category: %s", category), http.StatusBadRequest)
@@ -149,7 +149,7 @@ func (c *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Req
 		}
 	}
 
-	response, err := c.blogService.GetBlogsByCategory(req.Context(), category, blogQuery)
+	response, err := h.blogService.GetBlogsByCategory(req.Context(), category, blogQuery)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to retrieve blogs by category: %s", category), http.StatusBadRequest)
 		return
@@ -164,4 +164,8 @@ func (c *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonData)
+}
+
+func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
+
 }
