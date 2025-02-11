@@ -1,6 +1,8 @@
 package user
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -57,4 +59,36 @@ func ConvertToUserResponse(user *User, token string) UserResponse {
 	}
 
 	return userResponse
+}
+
+func VerifyJWT(token string) error {
+	claims := new(JWTClaims)
+
+	if len(token) == 0 {
+		return errors.New("invalid token length")
+	}
+
+	parsedToken, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing signature")
+		}
+
+		return secretKey, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if !parsedToken.Valid {
+		return errors.New("token is invalid")
+	}
+
+	if claims.ExpiresAt < time.Now().Unix() {
+		return errors.New("token is expired")
+	}
+
+	fmt.Println("user id: ", claims.User.ID.Hex())
+
+	return nil
 }

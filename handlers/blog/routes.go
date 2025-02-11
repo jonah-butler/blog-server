@@ -1,6 +1,9 @@
 package blog
 
-import "net/http"
+import (
+	"blog-api/middlewares"
+	"net/http"
+)
 
 func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	// blog
@@ -10,5 +13,7 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	// blog categories
 	server.HandleFunc("GET "+prefix+"/category/{category}", h.handleBlogsByCategory)
 	// protected
-	server.HandleFunc("GET "+prefix+"/drafts/{userID}", h.handleDrafts)
+	// set ID within request context - check chat gpt
+	// ensure id from verified token matches the userID value in the req route path
+	server.HandleFunc("GET "+prefix+"/drafts/{userID}", middlewares.BearerAuthMiddleware(h.handleDrafts))
 }
