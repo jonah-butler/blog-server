@@ -92,7 +92,11 @@ func main() {
 
 	// run server inside channel
 	go func() {
-		fmt.Printf("listening on port %s", port)
+		fmt.Println("-----------------------------------")
+		fmt.Println("|                                 |")
+		fmt.Printf("|     Listening on PORT %s      |\n", port)
+		fmt.Println("|                                 |")
+		fmt.Println("-----------------------------------")
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
