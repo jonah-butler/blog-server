@@ -1,6 +1,7 @@
 package blog
 
 import (
+	m "blog-api/middlewares"
 	r "blog-api/repositories/blog"
 	s "blog-api/services/blog"
 	"encoding/json"
@@ -167,5 +168,17 @@ func (h *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Req
 }
 
 func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
+	userID, ok := req.Context().Value(m.UserIDKey).(string)
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	// could make another middleware or function that handles this
+	// in a more sensible way
+	if userID != req.PathValue("userID") {
+		http.Error(w, "Invalid access", http.StatusUnauthorized)
+		return
+	}
 
 }

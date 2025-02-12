@@ -96,3 +96,6 @@ func (s *BlogService) GetBlogsByCategory(ctx context.Context, category string, q
 
 	return response, err
 }
+
+func (s *BlogService) GetDraftsByUser(ctx context.Context, q *r.BlogQuery) {
+}

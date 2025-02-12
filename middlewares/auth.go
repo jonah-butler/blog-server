@@ -2,10 +2,15 @@ package middlewares
 
 import (
 	r "blog-api/repositories/user"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 )
+
+type contextKey string
+
+const UserIDKey contextKey = "userID"
 
 func BearerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -23,8 +28,14 @@ func BearerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		token := parts[1]
 
-		err := r.VerifyJWT(token)
+		userID, err := r.VerifyJWT(token)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Verification failed: %v", err), http.StatusUnauthorized)
+			return
+		}
 
-		fmt.Println("verification error? ", err)
+		ctx := context.WithValue(req.Context(), UserIDKey, userID)
+
+		next(w, req.WithContext(ctx))
 	}
 }

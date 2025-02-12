@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
@@ -61,11 +60,11 @@ func ConvertToUserResponse(user *User, token string) UserResponse {
 	return userResponse
 }
 
-func VerifyJWT(token string) error {
+func VerifyJWT(token string) (string, error) {
 	claims := new(JWTClaims)
 
 	if len(token) == 0 {
-		return errors.New("invalid token length")
+		return "", errors.New("invalid token length")
 	}
 
 	parsedToken, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
@@ -77,18 +76,16 @@ func VerifyJWT(token string) error {
 	})
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if !parsedToken.Valid {
-		return errors.New("token is invalid")
+		return "", errors.New("token is invalid")
 	}
 
 	if claims.ExpiresAt < time.Now().Unix() {
-		return errors.New("token is expired")
+		return "", errors.New("token is expired")
 	}
 
-	fmt.Println("user id: ", claims.User.ID.Hex())
-
-	return nil
+	return claims.User.ID.Hex(), nil
 }
