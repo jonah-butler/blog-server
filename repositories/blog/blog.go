@@ -2,7 +2,10 @@ package blog
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	m "blog-api/middlewares"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -16,6 +19,7 @@ type BlogRepository interface {
 	GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetRandomBlog(ctx context.Context) ([]*Blog, error)
 	GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]Blog, bool, error)
+	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	IncrementViewCount(slug string)
 }
 
@@ -229,6 +233,67 @@ func (r *MongoBlogRepository) GetBlogsByCategory(ctx context.Context, category s
 	if err != nil {
 		return blogs, false, err
 	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &blogs); err != nil {
+		return blogs, false, err
+	}
+
+	totalDocuments, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return blogs, false, err
+	}
+
+	hasMore := q.Offset+limit < int(totalDocuments)
+
+	return blogs, hasMore, nil
+}
+
+/*
+*
+
+	Accepts: context, BlogQuery
+
+	Lookup drafts for a provided offset and userID
+	which will be extracted from a verified token.
+	A request with an invalid token or non-existent
+	userID will not reach this repository method.
+*/
+func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error) {
+	// lots of repeated code - see what i can do about that...
+	limit := 10
+	var blogs []Blog
+
+	// maybe store the userID in request context
+	// as ObjectID without converting via .Hex()
+	// then just convert it when needed since in
+	// most cases in queries it will just be needed
+	// in its original form
+	userID, ok := ctx.Value(m.UserIDKey).(string)
+	if !ok {
+		return blogs, false, errors.New("failed to access context values")
+	}
+
+	userObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return blogs, false, err
+	}
+
+	filter := bson.M{
+		"published": false,
+		"author":    userObjectID,
+	}
+
+	opts := options.Find().
+		SetSort(bson.M{"createdAt": -1}).
+		SetLimit(int64(limit)).
+		SetSkip(int64(q.Offset))
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return blogs, false, err
+	}
+
 	defer cursor.Close(ctx)
 
 	if err = cursor.All(ctx, &blogs); err != nil {

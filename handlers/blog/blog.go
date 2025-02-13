@@ -181,4 +181,33 @@ func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	blogQuery := new(r.BlogQuery)
+
+	//maybe change handleBlogIndex to this
+	// make this a utility
+	offset := req.URL.Query().Get("offset")
+	if offset != "" {
+		parsedOffset, err := strconv.Atoi(offset)
+		if err == nil {
+			blogQuery.Offset = parsedOffset
+		}
+	}
+
+	response, err := h.blogService.GetDraftsByUser(req.Context(), blogQuery)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error getting drafts: %s", err), http.StatusUnauthorized)
+		return
+	}
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		// figure out a better way to do all of these http Error responses
+		http.Error(w, fmt.Sprintf("Failed to marshal blogs: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonData)
+
 }

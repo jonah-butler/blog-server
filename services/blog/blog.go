@@ -97,5 +97,16 @@ func (s *BlogService) GetBlogsByCategory(ctx context.Context, category string, q
 	return response, err
 }
 
-func (s *BlogService) GetDraftsByUser(ctx context.Context, q *r.BlogQuery) {
+func (s *BlogService) GetDraftsByUser(ctx context.Context, q *r.BlogQuery) (r.BlogIndexResponse, error) {
+	response := r.BlogIndexResponse{}
+
+	blogs, hasMore, err := s.blogRepo.GetDraftsByUser(ctx, q)
+	if err != nil {
+		return response, err
+	}
+
+	response.HasMore = hasMore
+	response.Blogs = blogs
+
+	return response, nil
 }
