@@ -3,9 +3,11 @@ package blog
 import (
 	"context"
 	"errors"
+	"fmt"
+	"regexp"
 	"time"
 
-	m "blog-api/middlewares"
+	ck "blog-api/contextkeys"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -19,6 +21,7 @@ type BlogRepository interface {
 	GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetRandomBlog(ctx context.Context) ([]*Blog, error)
 	GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]Blog, bool, error)
+	GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error)
 	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	IncrementViewCount(slug string)
 }
@@ -233,6 +236,7 @@ func (r *MongoBlogRepository) GetBlogsByCategory(ctx context.Context, category s
 	if err != nil {
 		return blogs, false, err
 	}
+
 	defer cursor.Close(ctx)
 
 	if err = cursor.All(ctx, &blogs); err != nil {
@@ -269,7 +273,7 @@ func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery)
 	// then just convert it when needed since in
 	// most cases in queries it will just be needed
 	// in its original form
-	userID, ok := ctx.Value(m.UserIDKey).(string)
+	userID, ok := ctx.Value(ck.UserIDKey).(string)
 	if !ok {
 		return blogs, false, errors.New("failed to access context values")
 	}
@@ -288,6 +292,52 @@ func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery)
 		SetSort(bson.M{"createdAt": -1}).
 		SetLimit(int64(limit)).
 		SetSkip(int64(q.Offset))
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return blogs, false, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &blogs); err != nil {
+		return blogs, false, err
+	}
+
+	totalDocuments, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return blogs, false, err
+	}
+
+	hasMore := q.Offset+limit < int(totalDocuments)
+
+	return blogs, hasMore, nil
+}
+
+func (r *MongoBlogRepository) GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error) {
+	limit := 10
+	var blogs []Blog
+
+	escapedQuery := fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(searchQuery))
+
+	fmt.Println("query: ", escapedQuery)
+
+	opts := options.Find().
+		SetLimit(int64(limit)).
+		SetSkip(int64(q.Offset))
+
+	filter := bson.M{
+		"$and": []bson.M{
+			{"published": true},
+			{
+				"$or": []bson.M{
+					{"text": bson.M{"$regex": escapedQuery, "$options": "i"}},
+					{"title": bson.M{"$regex": escapedQuery, "$options": "i"}},
+					{"categories": bson.M{"$regex": escapedQuery, "$options": "i"}},
+				},
+			},
+		},
+	}
 
 	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {

@@ -110,3 +110,17 @@ func (s *BlogService) GetDraftsByUser(ctx context.Context, q *r.BlogQuery) (r.Bl
 
 	return response, nil
 }
+
+func (s *BlogService) GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *r.BlogQuery) (r.BlogIndexResponse, error) {
+	response := r.BlogIndexResponse{}
+
+	blogs, hasMore, err := s.blogRepo.GetBlogsBySearchQuery(ctx, searchQuery, q)
+	if err != nil {
+		return response, err
+	}
+
+	response.HasMore = hasMore
+	response.Blogs = blogs
+
+	return response, nil
+}

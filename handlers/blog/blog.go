@@ -1,13 +1,11 @@
 package blog
 
 import (
-	m "blog-api/middlewares"
 	r "blog-api/repositories/blog"
 	s "blog-api/services/blog"
-	"encoding/json"
+	u "blog-api/utilities"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 type BlogHandler struct {
@@ -29,35 +27,19 @@ func NewBlogHandler(service *s.BlogService) *BlogHandler {
 	 the set offset.
 */
 func (h *BlogHandler) handleBlogIndex(w http.ResponseWriter, req *http.Request) {
-	offset := req.URL.Query().Get("offset")
-	if offset == "" {
-		offset = "0"
-	}
+	blogQuery := new(r.BlogQuery)
+	queryValues := req.URL.Query()
 
-	parsedOffset, err := strconv.Atoi(offset)
-	if err != nil {
-		parsedOffset = 0
-	}
-
-	blogQuery := &r.BlogQuery{
-		Offset: parsedOffset,
-	}
+	u.ParseBlogQueryParams(blogQuery, queryValues)
 
 	blogs, err := h.blogService.GetBlogIndex(req.Context(), blogQuery)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get blogs at offset %s: %v", offset, err), http.StatusBadRequest)
+		message := fmt.Errorf("failed to get blogs at offset %d: %v", blogQuery.Offset, err)
+		u.WriteJSONErr(w, http.StatusBadRequest, message)
 		return
 	}
 
-	jsonData, err := json.Marshal(blogs)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to marshal blogs: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
+	u.WriteJSON(w, http.StatusOK, blogs)
 }
 
 /*
@@ -70,30 +52,25 @@ func (h *BlogHandler) handleBlogIndex(w http.ResponseWriter, req *http.Request) 
 func (h *BlogHandler) handleBlogBySlug(w http.ResponseWriter, req *http.Request) {
 	slug := req.PathValue("slug")
 	if slug == "" {
-		http.Error(w, fmt.Sprintf("Not a valid slug: %s", slug), http.StatusBadRequest)
+		error := fmt.Errorf("not a valid slug: %s", slug)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}
 
 	blogs, err := h.blogService.GetBlogBySlug(req.Context(), slug)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to lookup blog by slug %s: %v", slug, err), http.StatusBadRequest)
+		error := fmt.Errorf("failed to lookup blog by slug %s: %v", slug, err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}
 
 	if blogs.Post1 == nil {
-		http.Error(w, fmt.Sprintf("Failed to lookup blog by slug: %s", slug), http.StatusNotFound)
+		error := fmt.Errorf("failed to lookup blog by slug: %s", slug)
+		u.WriteJSONErr(w, http.StatusNotFound, error)
 		return
 	}
 
-	jsonData, err := json.Marshal(blogs)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to marshal blogs: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
+	u.WriteJSON(w, http.StatusOK, blogs)
 }
 
 /*
@@ -106,19 +83,12 @@ func (h *BlogHandler) handleBlogBySlug(w http.ResponseWriter, req *http.Request)
 func (h *BlogHandler) handleRandomBlog(w http.ResponseWriter, req *http.Request) {
 	response, err := h.blogService.GetRandomBlog(req.Context())
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to lookup a random blog: %v", err), http.StatusBadRequest)
+		error := fmt.Errorf("failed to lookup a random blog: %v", err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}
 
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to marshal blogs: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
+	u.WriteJSON(w, http.StatusOK, response)
 }
 
 /*
@@ -135,79 +105,56 @@ func (h *BlogHandler) handleRandomBlog(w http.ResponseWriter, req *http.Request)
 func (h *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Request) {
 	category := req.PathValue("category")
 	if category == "" {
-		http.Error(w, fmt.Sprintf("Not a valid category: %s", category), http.StatusBadRequest)
+		error := fmt.Errorf("not a valid category: %s", category)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}
 
 	blogQuery := new(r.BlogQuery)
 
-	//maybe change handleBlogIndex to this
-	offset := req.URL.Query().Get("offset")
-	if offset != "" {
-		parsedOffset, err := strconv.Atoi(offset)
-		if err == nil {
-			blogQuery.Offset = parsedOffset
-		}
-	}
+	u.ParseBlogQueryParams(blogQuery, req.URL.Query())
 
 	response, err := h.blogService.GetBlogsByCategory(req.Context(), category, blogQuery)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to retrieve blogs by category: %s", category), http.StatusBadRequest)
+		error := fmt.Errorf("failed to retrieve blogs by category: %s", category)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}
 
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to marshal blogs: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
+	u.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
-	userID, ok := req.Context().Value(m.UserIDKey).(string)
-	if !ok {
-		http.Error(w, "User ID not found in context", http.StatusUnauthorized)
-		return
-	}
-
-	// could make another middleware or function that handles this
-	// in a more sensible way
-	if userID != req.PathValue("userID") {
-		http.Error(w, "Invalid access", http.StatusUnauthorized)
-		return
-	}
-
 	blogQuery := new(r.BlogQuery)
 
-	//maybe change handleBlogIndex to this
-	// make this a utility
-	offset := req.URL.Query().Get("offset")
-	if offset != "" {
-		parsedOffset, err := strconv.Atoi(offset)
-		if err == nil {
-			blogQuery.Offset = parsedOffset
-		}
-	}
+	u.ParseBlogQueryParams(blogQuery, req.URL.Query())
 
 	response, err := h.blogService.GetDraftsByUser(req.Context(), blogQuery)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error getting drafts: %s", err), http.StatusUnauthorized)
+		error := fmt.Errorf("error getting drafts: %s", err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}
 
-	jsonData, err := json.Marshal(response)
+	u.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *BlogHandler) handleBlogSearch(w http.ResponseWriter, req *http.Request) {
+	blogQuery := new(r.BlogQuery)
+
+	u.ParseBlogQueryParams(blogQuery, req.URL.Query())
+
+	searchQuery := req.PathValue("query")
+	if searchQuery == "" {
+		error := fmt.Errorf("search query is empty")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+	}
+
+	response, err := h.blogService.GetBlogsBySearchQuery(req.Context(), searchQuery, blogQuery)
 	if err != nil {
-		// figure out a better way to do all of these http Error responses
-		http.Error(w, fmt.Sprintf("Failed to marshal blogs: %v", err), http.StatusInternalServerError)
-		return
+		error := fmt.Errorf("error searching blogs: %s", err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
-
+	u.WriteJSON(w, http.StatusOK, response)
 }
