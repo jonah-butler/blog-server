@@ -11,6 +11,7 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	server.HandleFunc("GET "+prefix+"/random", h.handleRandomBlog)
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
+	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
 	// blog categories
 	server.HandleFunc("GET "+prefix+"/category/{category}", h.handleBlogsByCategory)
 	// protected

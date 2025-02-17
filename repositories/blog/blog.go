@@ -23,6 +23,7 @@ type BlogRepository interface {
 	GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]Blog, bool, error)
 	GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error)
 	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
+	LikeBlog(ctx context.Context, id string) (*Blog, error)
 	IncrementViewCount(slug string)
 }
 
@@ -358,4 +359,28 @@ func (r *MongoBlogRepository) GetBlogsBySearchQuery(ctx context.Context, searchQ
 	hasMore := q.Offset+limit < int(totalDocuments)
 
 	return blogs, hasMore, nil
+}
+
+func (r *MongoBlogRepository) LikeBlog(ctx context.Context, id string) (*Blog, error) {
+	var blog *Blog
+
+	postID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return blog, err
+	}
+
+	filter := bson.M{"_id": postID}
+	update := bson.M{"$inc": bson.M{"rating": 1}}
+
+	err = r.collection.FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&blog)
+	if err != nil {
+		return blog, err
+	}
+
+	return blog, nil
 }

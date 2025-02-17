@@ -15,10 +15,15 @@ type BlogIndexResponse struct {
 	HasMore bool   `json:"hasMore"`
 }
 
+// update this since it's not atually a SingleBlogResponse anymore
 type SingleBlogResponse struct {
 	Post1        *Blog `json:"post1"`
 	PreviousPost *Blog `json:"previousPost"`
 	NextPost     *Blog `json:"nextPost"`
+}
+
+type BlogUpdateResponse struct {
+	Blog *Blog `json:"blog"`
 }
 
 type Blog struct {

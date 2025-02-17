@@ -124,6 +124,19 @@ func (h *BlogHandler) handleBlogsByCategory(w http.ResponseWriter, req *http.Req
 	u.WriteJSON(w, http.StatusOK, response)
 }
 
+/*
+/blog/drafts/{userID]}
+
+	Accepts the following query params:
+	offset: 0 / 10 / 20 / 30...
+
+	Queries drafts for the provided user with offset
+
+	Protected endpoint requiring authorized token
+
+	 Retruns array of blogs and hasMore boolean indicating more are available after
+	 the set offset.
+*/
 func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
 	blogQuery := new(r.BlogQuery)
 
@@ -139,6 +152,20 @@ func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
 	u.WriteJSON(w, http.StatusOK, response)
 }
 
+/*
+/blog/search/{query}
+
+	Accepts the following query params:
+	offset: 0 / 10 / 20 / 30...
+
+	Queries published blogs by search query where:
+	- text can contain search query
+	- title can contain search query
+	- categories can contain search query
+
+	 Retruns array of blogs and hasMore boolean indicating more are available after
+	 the set offset.
+*/
 func (h *BlogHandler) handleBlogSearch(w http.ResponseWriter, req *http.Request) {
 	blogQuery := new(r.BlogQuery)
 
@@ -148,12 +175,41 @@ func (h *BlogHandler) handleBlogSearch(w http.ResponseWriter, req *http.Request)
 	if searchQuery == "" {
 		error := fmt.Errorf("search query is empty")
 		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
 	}
 
 	response, err := h.blogService.GetBlogsBySearchQuery(req.Context(), searchQuery, blogQuery)
 	if err != nil {
 		error := fmt.Errorf("error searching blogs: %s", err)
 		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+}
+
+/*
+POST
+/blog/{id}/like
+
+Validates the provided object id path value and increments
+the blog's rating property by one
+
+	Returns the updated document.
+*/
+func (h *BlogHandler) handleBlogLike(w http.ResponseWriter, req *http.Request) {
+	blogID := req.PathValue("id")
+	if blogID == "" {
+		error := fmt.Errorf("not a valid post ID")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.blogService.LikeBlog(req.Context(), blogID)
+	if err != nil {
+		error := fmt.Errorf("failed to update blog rating: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
 	}
 
 	u.WriteJSON(w, http.StatusOK, response)

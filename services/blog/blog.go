@@ -124,3 +124,16 @@ func (s *BlogService) GetBlogsBySearchQuery(ctx context.Context, searchQuery str
 
 	return response, nil
 }
+
+func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResponse, error) {
+	var response r.BlogUpdateResponse
+
+	blog, err := s.blogRepo.LikeBlog(ctx, id)
+	if err != nil {
+		return response, err
+	}
+
+	response.Blog = blog
+
+	return response, nil
+}
