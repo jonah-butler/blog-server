@@ -12,10 +12,11 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
+	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.editBlog))
+
 	// blog categories
 	server.HandleFunc("GET "+prefix+"/category/{category}", h.handleBlogsByCategory)
+
 	// protected
-	// set ID within request context - check chat gpt
-	// ensure id from verified token matches the userID value in the req route path
 	server.HandleFunc("GET "+prefix+"/drafts/{userID}", middlewares.BearerAuthMiddleware(h.handleDrafts))
 }

@@ -214,3 +214,7 @@ func (h *BlogHandler) handleBlogLike(w http.ResponseWriter, req *http.Request) {
 
 	u.WriteJSON(w, http.StatusOK, response)
 }
+
+func (h *BlogHandler) editBlog(w http.ResponseWriter, req *http.Request) {
+
+}
