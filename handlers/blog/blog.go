@@ -216,5 +216,32 @@ func (h *BlogHandler) handleBlogLike(w http.ResponseWriter, req *http.Request) {
 }
 
 func (h *BlogHandler) handleEditBlog(w http.ResponseWriter, req *http.Request) {
+	req.Body = http.MaxBytesReader(w, req.Body, 32<<20+512)
+
+	isValidMime := ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
+	if !isValidMime {
+		error := fmt.Errorf("invalid content type")
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	reader, err := req.MultipartReader()
+	if err != nil {
+		// consolidate
+		error := fmt.Errorf("error reading mutlipart form: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	// part, err := reader.NextPart()
+	// fmt.Println("the error")
+	// if err != nil {
+	// 	// consolidate
+	// 	error := fmt.Errorf("error reading mutlipart form data: %v", err)
+	// 	u.WriteJSONErr(w, http.StatusInternalServerError, error)
+	// 	return
+	// }
+
+	err = ParseMultiePartForm(reader)
 
 }

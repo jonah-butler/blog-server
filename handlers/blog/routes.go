@@ -7,7 +7,7 @@ import (
 
 func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	//
-	// blog
+	// BLOG
 	//
 
 	// get latest blogs
@@ -24,14 +24,14 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.handleEditBlog))
 
 	//
-	// blog categories
+	// BLOG CATEGORIES
 	//
 
 	// lookup blogs by category
 	server.HandleFunc("GET "+prefix+"/category/{category}", h.handleBlogsByCategory)
 
 	//
-	// blog drafts
+	// BLOG DRAFTS
 	//
 
 	// get user drafts
