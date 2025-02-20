@@ -25,6 +25,7 @@ type BlogRepository interface {
 	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	LikeBlog(ctx context.Context, id string) (*Blog, error)
 	IncrementViewCount(slug string)
+	UpdateBlog(ctx context.Context, input *BlogInput) error
 }
 
 type MongoBlogRepository struct {
@@ -383,4 +384,9 @@ func (r *MongoBlogRepository) LikeBlog(ctx context.Context, id string) (*Blog, e
 	}
 
 	return blog, nil
+}
+
+func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) error {
+	fmt.Println("update: ", input)
+	return nil
 }

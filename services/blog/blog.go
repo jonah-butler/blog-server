@@ -137,3 +137,12 @@ func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResp
 
 	return response, nil
 }
+
+func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) error {
+	err := s.blogRepo.UpdateBlog(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

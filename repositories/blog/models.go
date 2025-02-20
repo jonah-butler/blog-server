@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"mime/multipart"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -42,4 +43,13 @@ type Blog struct {
 	SanitizedHTML string        `bson:"sanitizedHTML" json:"sanitizedHTML"`
 	CreatedAt     time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt     time.Time     `bson:"updatedAt" json:"updatedAt"`
+}
+
+type BlogInput struct {
+	Categories []string              `param:"categories"`
+	Text       string                `param:"title"`
+	Published  bool                  `param:"published"`
+	Title      string                `param:"title"`
+	Image      *multipart.FileHeader `param:"image"`
+	ID         string                `param:"id"`
 }

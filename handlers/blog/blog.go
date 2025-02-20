@@ -215,7 +215,7 @@ func (h *BlogHandler) handleBlogLike(w http.ResponseWriter, req *http.Request) {
 	u.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *BlogHandler) handleEditBlog(w http.ResponseWriter, req *http.Request) {
+func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request) {
 	req.Body = http.MaxBytesReader(w, req.Body, 32<<20+512)
 
 	isValidMime := ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
@@ -227,21 +227,22 @@ func (h *BlogHandler) handleEditBlog(w http.ResponseWriter, req *http.Request) {
 
 	reader, err := req.MultipartReader()
 	if err != nil {
-		// consolidate
 		error := fmt.Errorf("error reading mutlipart form: %v", err)
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
 		return
 	}
 
-	// part, err := reader.NextPart()
-	// fmt.Println("the error")
-	// if err != nil {
-	// 	// consolidate
-	// 	error := fmt.Errorf("error reading mutlipart form data: %v", err)
-	// 	u.WriteJSONErr(w, http.StatusInternalServerError, error)
-	// 	return
-	// }
+	input, err := ParseMultiePartForm(reader)
+	if err != nil {
+		error := fmt.Errorf("error parsing mutlipart form: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
 
-	err = ParseMultiePartForm(reader)
-
+	err = h.blogService.UpdateBlog(req.Context(), input)
+	if err != nil {
+		error := fmt.Errorf("error updating blog: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
 }

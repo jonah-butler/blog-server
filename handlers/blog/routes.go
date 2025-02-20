@@ -21,7 +21,7 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	// update blog rating
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
 	// update blog
-	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.handleEditBlog))
+	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.handleUpdatetBlog))
 
 	//
 	// BLOG CATEGORIES

@@ -1,12 +1,15 @@
 package blog
 
 import (
+	r "blog-api/repositories/blog"
+	"bytes"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -43,7 +46,9 @@ func ValidateRequestMime(contentType, mimeType string) bool {
 	return strings.Contains(contentType, mimeType)
 }
 
-func ParseMultiePartForm(reader *multipart.Reader) error {
+func ParseMultiePartForm(reader *multipart.Reader) (*r.BlogInput, error) {
+	input := new(r.BlogInput)
+
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
@@ -51,13 +56,58 @@ func ParseMultiePartForm(reader *multipart.Reader) error {
 		}
 
 		if err != nil {
-			return err
+			return input, err
 		}
 
-		fmt.Println(part.FormName())
+		formName := part.FormName()
+
+		if formName == "image" {
+			fileHeader := &multipart.FileHeader{
+				Filename: part.FileName(),
+				Header:   part.Header,
+			}
+
+			input.Image = fileHeader
+			continue
+		}
+
+		buf := new(bytes.Buffer)
+
+		_, err = io.Copy(buf, part)
+		if err != nil {
+			return input, err
+		}
+
+		fieldValue := buf.String()
+
+		switch formName {
+		case "categories":
+			var categories []string
+
+			err := json.Unmarshal([]byte(fieldValue), &categories)
+			if err != nil {
+				return input, err
+			}
+
+			input.Categories = categories
+		case "text":
+			input.Text = fieldValue
+
+		case "published":
+			published, err := strconv.ParseBool(fieldValue)
+			if err != nil {
+				return input, err
+			}
+
+			input.Published = bool(published)
+		case "title":
+			input.Title = fieldValue
+		case "id":
+			input.ID = fieldValue
+		}
 	}
 
-	return nil
+	return input, nil
 }
 
 // func SafeMultiFormParse(reader *multipart.Reader, d interface{}) error {
