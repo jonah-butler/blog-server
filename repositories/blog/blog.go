@@ -322,8 +322,6 @@ func (r *MongoBlogRepository) GetBlogsBySearchQuery(ctx context.Context, searchQ
 
 	escapedQuery := fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(searchQuery))
 
-	fmt.Println("query: ", escapedQuery)
-
 	opts := options.Find().
 		SetLimit(int64(limit)).
 		SetSkip(int64(q.Offset))
@@ -387,6 +385,5 @@ func (r *MongoBlogRepository) LikeBlog(ctx context.Context, id string) (*Blog, e
 }
 
 func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) error {
-	fmt.Println("update: ", input)
 	return nil
 }

@@ -2,6 +2,7 @@ package blog
 
 import (
 	r "blog-api/repositories/blog"
+	"blog-api/s3"
 	"context"
 )
 
@@ -139,7 +140,12 @@ func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResp
 }
 
 func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) error {
-	err := s.blogRepo.UpdateBlog(ctx, input)
+	_, err := s3.UploadToS3(input.Image, input.ImageBytes)
+	if err != nil {
+		return err
+	}
+
+	err = s.blogRepo.UpdateBlog(ctx, input)
 	if err != nil {
 		return err
 	}

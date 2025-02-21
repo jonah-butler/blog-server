@@ -51,5 +51,6 @@ type BlogInput struct {
 	Published  bool                  `param:"published"`
 	Title      string                `param:"title"`
 	Image      *multipart.FileHeader `param:"image"`
+	ImageBytes []byte                `param:"imageData"`
 	ID         string                `param:"id"`
 }

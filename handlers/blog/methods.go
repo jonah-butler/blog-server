@@ -60,14 +60,23 @@ func ParseMultiePartForm(reader *multipart.Reader) (*r.BlogInput, error) {
 		}
 
 		formName := part.FormName()
-
 		if formName == "image" {
+			fileBuffer := new(bytes.Buffer)
+
+			size, err := io.Copy(fileBuffer, part)
+			if err != nil {
+				return input, err
+			}
+
 			fileHeader := &multipart.FileHeader{
 				Filename: part.FileName(),
 				Header:   part.Header,
+				Size:     size,
 			}
 
 			input.Image = fileHeader
+
+			input.ImageBytes = fileBuffer.Bytes()
 			continue
 		}
 
