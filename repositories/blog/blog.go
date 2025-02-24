@@ -385,5 +385,16 @@ func (r *MongoBlogRepository) LikeBlog(ctx context.Context, id string) (*Blog, e
 }
 
 func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) error {
+	fmt.Println("the input")
+
+	fmt.Println("categories: ", input.Categories)
+	fmt.Println("text: ", input.Text)
+	fmt.Println("published: ", input.Published)
+	fmt.Println("title: ", input.Title)
+	fmt.Println("image location: ", input.ImageLocation)
+	fmt.Println("image key: ", input.ImageKey)
+	fmt.Println("the id: ", input.ID)
+
+	fmt.Println("end input")
 	return nil
 }

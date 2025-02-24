@@ -140,12 +140,19 @@ func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResp
 }
 
 func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) error {
-	_, err := s3.UploadToS3(input.Image, input.ImageBytes)
-	if err != nil {
-		return err
+	// if a file was included process first
+	if input.Image != nil {
+		url, err := s3.UploadToS3(input.Image, input.ImageBytes)
+		if err != nil {
+			return err
+		}
+
+		// set url and filename
+		input.ImageLocation = url
+		input.ImageKey = input.Image.Filename
 	}
 
-	err = s.blogRepo.UpdateBlog(ctx, input)
+	err := s.blogRepo.UpdateBlog(ctx, input)
 	if err != nil {
 		return err
 	}

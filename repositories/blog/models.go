@@ -45,12 +45,16 @@ type Blog struct {
 	UpdatedAt     time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
+// input processing used when a blog is being created
+// or updated for either drafts or published ones
 type BlogInput struct {
-	Categories []string              `param:"categories"`
-	Text       string                `param:"title"`
-	Published  bool                  `param:"published"`
-	Title      string                `param:"title"`
-	Image      *multipart.FileHeader `param:"image"`
-	ImageBytes []byte                `param:"imageData"`
-	ID         string                `param:"id"`
+	Categories    []string              `bson:"categories" param:"categories"`
+	Text          string                `bson:"text" param:"title"`
+	Published     bool                  `bson:"published" param:"published"`
+	Title         string                `bson:"title" param:"title"`
+	Image         *multipart.FileHeader `bson:"-" param:"image"`     // ignored bson -> ignored in the mongo upsert
+	ImageBytes    []byte                `bson:"-" param:"imageData"` // ignored bson -> ignored in the mongo upsert
+	ImageLocation string                `bson:"featuredImageLocation"`
+	ImageKey      string                `bson:"featuredImageKey"`
+	ID            string                `bson:"_id" param:"id"`
 }

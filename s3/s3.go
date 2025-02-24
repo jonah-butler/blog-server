@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+const DefaultContentType = "application/octet-stream"
+
 func HasS3Credentials() error {
 	S3Region := os.Getenv("AWS_REGION")
 	S3AccessKey := os.Getenv("AWS_ACCESS_KEY_ID")
@@ -64,16 +66,18 @@ func UploadToS3(fileHeader *multipart.FileHeader, fileData []byte) (string, erro
 	url := getS3FileURL(bucketName, os.Getenv("AWS_REGION"), key)
 
 	return url, nil
-
 }
 
+// featuredImageLocation... the url
+// featuredImgaeKey... just the file name
+// featuredImageTag... idk wtf this is or where it comes from in the old code
 func getS3FileURL(bucket, key, region string) string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key)
 }
 
 func getContentType(filename string) *string {
 	ext := filepath.Ext(filename)
-	contentType := "application/octet-stream"
+	contentType := DefaultContentType
 
 	switch ext {
 	case ".jpg", ".jpeg":
