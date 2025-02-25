@@ -152,6 +152,8 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) error 
 		input.ImageKey = input.Image.Filename
 	}
 
+	// sanitize input text html
+
 	err := s.blogRepo.UpdateBlog(ctx, input)
 	if err != nil {
 		return err
