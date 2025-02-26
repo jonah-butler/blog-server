@@ -239,6 +239,12 @@ func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request
 		return
 	}
 
+	if input.ID == "" || input.ID != req.PathValue("id") {
+		error := fmt.Errorf("blog id missing in payload or mismatched")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
 	response, err := h.blogService.UpdateBlog(req.Context(), input)
 	if err != nil {
 		error := fmt.Errorf("error updating blog: %v", err)
