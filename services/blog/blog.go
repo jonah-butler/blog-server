@@ -4,6 +4,8 @@ import (
 	r "blog-api/repositories/blog"
 	"blog-api/s3"
 	"context"
+
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type BlogService struct {
@@ -139,12 +141,13 @@ func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResp
 	return response, nil
 }
 
-func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) error {
+func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) (r.BlogUpdateResponse, error) {
+	var response r.BlogUpdateResponse
 	// if a file was included process first
 	if input.Image != nil {
 		url, err := s3.UploadToS3(input.Image, input.ImageBytes)
 		if err != nil {
-			return err
+			return response, err
 		}
 
 		// set url and filename
@@ -153,11 +156,20 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) error 
 	}
 
 	// sanitize input text html
+	if input.Text != "" {
+		p := bluemonday.UGCPolicy()
 
-	err := s.blogRepo.UpdateBlog(ctx, input)
-	if err != nil {
-		return err
+		sanitized := p.Sanitize(input.Text)
+
+		input.Text = sanitized
 	}
 
-	return nil
+	blog, err := s.blogRepo.UpdateBlog(ctx, input)
+	if err != nil {
+		return response, err
+	}
+
+	response.Blog = blog
+
+	return response, nil
 }

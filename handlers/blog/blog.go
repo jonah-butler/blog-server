@@ -239,10 +239,12 @@ func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	err = h.blogService.UpdateBlog(req.Context(), input)
+	response, err := h.blogService.UpdateBlog(req.Context(), input)
 	if err != nil {
 		error := fmt.Errorf("error updating blog: %v", err)
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
 		return
 	}
+
+	u.WriteJSON(w, http.StatusOK, response)
 }

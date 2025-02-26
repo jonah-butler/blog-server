@@ -25,7 +25,7 @@ type BlogRepository interface {
 	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	LikeBlog(ctx context.Context, id string) (*Blog, error)
 	IncrementViewCount(slug string)
-	UpdateBlog(ctx context.Context, input *BlogInput) error
+	UpdateBlog(ctx context.Context, input *BlogInput) (*Blog, error)
 }
 
 type MongoBlogRepository struct {
@@ -384,17 +384,67 @@ func (r *MongoBlogRepository) LikeBlog(ctx context.Context, id string) (*Blog, e
 	return blog, nil
 }
 
-func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) error {
-	fmt.Println("the input")
+func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) (*Blog, error) {
+	var blog *Blog
 
-	fmt.Println("categories: ", input.Categories)
-	fmt.Println("text: ", input.Text)
-	fmt.Println("published: ", input.Published)
-	fmt.Println("title: ", input.Title)
-	fmt.Println("image location: ", input.ImageLocation)
-	fmt.Println("image key: ", input.ImageKey)
-	fmt.Println("the id: ", input.ID)
+	authorID := ctx.Value(ck.UserIDKey).(string)
+	blogID := input.ID
 
-	fmt.Println("end input")
-	return nil
+	hexAuthorID, err := bson.ObjectIDFromHex(authorID)
+	if err != nil {
+		return blog, err
+	}
+
+	hexBlogID, err := bson.ObjectIDFromHex(blogID)
+	if err != nil {
+		return blog, err
+	}
+
+	filter := bson.M{
+		"_id":    hexBlogID,
+		"author": hexAuthorID,
+	}
+
+	updateFields := bson.M{}
+
+	if len(input.Categories) > 0 {
+		updateFields["categories"] = input.Categories
+	}
+
+	if input.Text != "" {
+		updateFields["text"] = input.Text
+	}
+
+	if input.Title != "" {
+		updateFields["title"] = input.Title
+	}
+
+	if input.ImageLocation != "" {
+		updateFields["featuredImageLocation"] = input.ImageLocation
+	}
+
+	if input.ImageKey != "" {
+		updateFields["featuredImageKey"] = input.ImageKey
+	}
+
+	if input.Slug != "" {
+		updateFields["slug"] = input.ImageKey
+	}
+
+	updateFields["published"] = input.Published
+
+	// $set updates only the provided fields
+	update := bson.M{"$set": updateFields}
+
+	err = r.collection.FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&blog)
+	if err != nil {
+		return blog, err
+	}
+
+	return blog, nil
 }

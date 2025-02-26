@@ -57,4 +57,5 @@ type BlogInput struct {
 	ImageLocation string                `bson:"featuredImageLocation"`
 	ImageKey      string                `bson:"featuredImageKey"`
 	ID            string                `bson:"_id" param:"id"`
+	Slug          string                `bson:"slug" param:"slug"`
 }
