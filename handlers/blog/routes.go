@@ -12,6 +12,8 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 
 	// get latest blogs
 	server.HandleFunc("GET "+prefix+"/", h.handleBlogIndex)
+	// checks if the provided slug value is available
+	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", h.handleSlugValidation)
 	// get random blog
 	server.HandleFunc("GET "+prefix+"/random", h.handleRandomBlog)
 	// search blogs
@@ -20,6 +22,8 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
 	// update blog rating
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
+	// new blog
+	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.handleNewBlog))
 	// update blog
 	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.handleUpdatetBlog))
 

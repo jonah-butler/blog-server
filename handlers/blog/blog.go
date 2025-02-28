@@ -232,7 +232,7 @@ func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	input, err := ParseMultiePartForm(reader)
+	input, err := ParseMultiPartFormBlogUpdate(reader)
 	if err != nil {
 		error := fmt.Errorf("error parsing mutlipart form: %v", err)
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
@@ -253,4 +253,63 @@ func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request
 	}
 
 	u.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *BlogHandler) handleSlugValidation(w http.ResponseWriter, req *http.Request) {
+	slug := req.PathValue("slug")
+	if slug == "" {
+		error := fmt.Errorf("no slug provided")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.blogService.ValidateSlug(req.Context(), slug)
+	if err != nil {
+		error := fmt.Errorf("error validating slug: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *BlogHandler) handleNewBlog(w http.ResponseWriter, req *http.Request) {
+	req.Body = http.MaxBytesReader(w, req.Body, 32<<20+512)
+
+	isValidMime := ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
+	if !isValidMime {
+		error := fmt.Errorf("invalid content type")
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	reader, err := req.MultipartReader()
+	if err != nil {
+		error := fmt.Errorf("error reading mutlipart form: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	input, err := ParseMultiPartFormBlogCreate(reader)
+	if err != nil {
+		error := fmt.Errorf("error parsing mutlipart form: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	if input.Slug == "" {
+		error := fmt.Errorf("missing required form value: slug")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.blogService.CreateBlog(req.Context(), input)
+	if err != nil {
+		error := fmt.Errorf("error updating blog: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+
 }

@@ -141,7 +141,7 @@ func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResp
 	return response, nil
 }
 
-func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) (r.BlogUpdateResponse, error) {
+func (s *BlogService) UpdateBlog(ctx context.Context, input *r.UpdateBlogInput) (r.BlogUpdateResponse, error) {
 	var response r.BlogUpdateResponse
 	// if a file was included process first
 	if input.Image != nil {
@@ -165,6 +165,52 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.BlogInput) (r.Blo
 	}
 
 	blog, err := s.blogRepo.UpdateBlog(ctx, input)
+	if err != nil {
+		return response, err
+	}
+
+	response.Blog = blog
+
+	return response, nil
+}
+
+func (s *BlogService) ValidateSlug(ctx context.Context, slug string) (r.SlugValidationResponse, error) {
+	var response r.SlugValidationResponse
+
+	isAvailable, err := s.blogRepo.ValidateSlug(ctx, slug)
+	if err != nil {
+		return response, err
+	}
+
+	response.IsAvailable = isAvailable
+
+	return response, err
+}
+
+func (s *BlogService) CreateBlog(ctx context.Context, input *r.CreateBlogInput) (r.BlogUpdateResponse, error) {
+	var response r.BlogUpdateResponse
+	// if a file was included process first
+	if input.Image != nil {
+		url, err := s3.UploadToS3(input.Image, input.ImageBytes)
+		if err != nil {
+			return response, err
+		}
+
+		// set url and filename
+		input.ImageLocation = url
+		input.ImageKey = input.Image.Filename
+	}
+
+	// sanitize input text html
+	if input.Text != "" {
+		p := bluemonday.UGCPolicy()
+
+		sanitized := p.Sanitize(input.Text)
+
+		input.Text = sanitized
+	}
+
+	blog, err := s.blogRepo.CreateBlog(ctx, input)
 	if err != nil {
 		return response, err
 	}

@@ -46,8 +46,8 @@ func ValidateRequestMime(contentType, mimeType string) bool {
 	return strings.Contains(contentType, mimeType)
 }
 
-func ParseMultiePartForm(reader *multipart.Reader) (*r.BlogInput, error) {
-	input := new(r.BlogInput)
+func ParseMultiPartFormBlogUpdate(reader *multipart.Reader) (*r.UpdateBlogInput, error) {
+	input := new(r.UpdateBlogInput)
 
 	for {
 		part, err := reader.NextPart()
@@ -113,6 +113,83 @@ func ParseMultiePartForm(reader *multipart.Reader) (*r.BlogInput, error) {
 			input.Title = fieldValue
 		case "id":
 			input.ID = fieldValue
+		case "slug":
+			input.Slug = fieldValue
+		}
+	}
+
+	return input, nil
+}
+
+// will eventually make this a bit more dynamic
+// merging this and the above method
+func ParseMultiPartFormBlogCreate(reader *multipart.Reader) (*r.CreateBlogInput, error) {
+	input := new(r.CreateBlogInput)
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return input, err
+		}
+
+		formName := part.FormName()
+		if formName == "image" {
+			fileBuffer := new(bytes.Buffer)
+
+			size, err := io.Copy(fileBuffer, part)
+			if err != nil {
+				return input, err
+			}
+
+			fileHeader := &multipart.FileHeader{
+				Filename: part.FileName(),
+				Header:   part.Header,
+				Size:     size,
+			}
+
+			input.Image = fileHeader
+
+			input.ImageBytes = fileBuffer.Bytes()
+			continue
+		}
+
+		buf := new(bytes.Buffer)
+
+		_, err = io.Copy(buf, part)
+		if err != nil {
+			return input, err
+		}
+
+		fieldValue := buf.String()
+
+		switch formName {
+		case "categories":
+			var categories []string
+
+			err := json.Unmarshal([]byte(fieldValue), &categories)
+			if err != nil {
+				return input, err
+			}
+
+			input.Categories = categories
+		case "text":
+			input.Text = fieldValue
+
+		case "published":
+			published, err := strconv.ParseBool(fieldValue)
+			if err != nil {
+				return input, err
+			}
+
+			input.Published = bool(published)
+		case "title":
+			input.Title = fieldValue
+		case "slug":
+			input.Slug = fieldValue
 		}
 	}
 

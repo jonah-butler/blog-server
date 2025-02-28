@@ -25,7 +25,9 @@ type BlogRepository interface {
 	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	LikeBlog(ctx context.Context, id string) (*Blog, error)
 	IncrementViewCount(slug string)
-	UpdateBlog(ctx context.Context, input *BlogInput) (*Blog, error)
+	UpdateBlog(ctx context.Context, input *UpdateBlogInput) (*Blog, error)
+	ValidateSlug(ctx context.Context, slug string) (bool, error)
+	CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error)
 }
 
 type MongoBlogRepository struct {
@@ -384,7 +386,7 @@ func (r *MongoBlogRepository) LikeBlog(ctx context.Context, id string) (*Blog, e
 	return blog, nil
 }
 
-func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) (*Blog, error) {
+func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *UpdateBlogInput) (*Blog, error) {
 	var blog *Blog
 
 	authorID := ctx.Value(ck.UserIDKey).(string)
@@ -445,6 +447,71 @@ func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *BlogInput) 
 	if err != nil {
 		return blog, err
 	}
+
+	return blog, nil
+}
+
+func (r *MongoBlogRepository) ValidateSlug(ctx context.Context, slug string) (bool, error) {
+	var blog *Blog
+
+	filter := bson.M{"slug": slug}
+
+	err := r.collection.FindOne(ctx, filter).Decode(&blog)
+
+	if err == mongo.ErrNoDocuments {
+		return true, nil
+	}
+
+	if !blog.ID.IsZero() && err == nil {
+		return false, nil
+	}
+
+	return false, err
+}
+
+func (r *MongoBlogRepository) CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error) {
+	var blog *Blog
+
+	// authorID := ctx.Value(ck.UserIDKey).(string)
+	// blogID := input.ID
+
+	// hexAuthorID, err := bson.ObjectIDFromHex(authorID)
+	// if err != nil {
+	// 	return blog, err
+	// }
+
+	// hexBlogID, err := bson.ObjectIDFromHex(blogID)
+	// if err != nil {
+	// 	return blog, err
+	// }
+
+	updateFields := bson.M{}
+
+	if len(input.Categories) > 0 {
+		updateFields["categories"] = input.Categories
+	}
+
+	if input.Text != "" {
+		updateFields["text"] = input.Text
+	}
+
+	if input.Title != "" {
+		updateFields["title"] = input.Title
+	}
+
+	if input.ImageLocation != "" {
+		updateFields["featuredImageLocation"] = input.ImageLocation
+	}
+
+	if input.ImageKey != "" {
+		updateFields["featuredImageKey"] = input.ImageKey
+	}
+
+	if input.Slug != "" {
+		updateFields["slug"] = input.ImageKey
+	}
+
+	updateFields["published"] = input.Published
 
 	return blog, nil
 }

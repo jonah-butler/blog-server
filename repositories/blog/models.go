@@ -27,6 +27,10 @@ type BlogUpdateResponse struct {
 	Blog *Blog `json:"blog"`
 }
 
+type SlugValidationResponse struct {
+	IsAvailable bool `json:"isAvailable"`
+}
+
 type Blog struct {
 	Categories    []string      `bson:"categories" json:"categories"`
 	Rating        int           `bson:"rating" json:"rating"`
@@ -45,9 +49,12 @@ type Blog struct {
 	UpdatedAt     time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
-// input processing used when a blog is being created
-// or updated for either drafts or published ones
-type BlogInput struct {
+type UpdateBlogInput struct {
+	CreateBlogInput `bson:",inline"`
+	ID              string `bson:"_id" param:"id"`
+}
+
+type CreateBlogInput struct {
 	Categories    []string              `bson:"categories" param:"categories"`
 	Text          string                `bson:"text" param:"title"`
 	Published     bool                  `bson:"published" param:"published"`
@@ -56,6 +63,5 @@ type BlogInput struct {
 	ImageBytes    []byte                `bson:"-" param:"imageData"` // ignored bson -> ignored in the mongo upsert
 	ImageLocation string                `bson:"featuredImageLocation"`
 	ImageKey      string                `bson:"featuredImageKey"`
-	ID            string                `bson:"_id" param:"id"`
 	Slug          string                `bson:"slug" param:"slug"`
 }
