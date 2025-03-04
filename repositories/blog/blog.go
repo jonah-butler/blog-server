@@ -81,6 +81,20 @@ func (r *MongoBlogRepository) GetBlogIndex(ctx context.Context, q *BlogQuery) ([
 	return blogs, hasMore, nil
 }
 
+func (r *MongoBlogRepository) GetBlogById(ctx context.Context, id bson.ObjectID) (*Blog, error) {
+	var blog *Blog
+
+	previousOpts := bson.M{"_id": id}
+
+	if err := r.collection.FindOne(ctx, previousOpts).Decode(&blog); err != nil {
+		if err != mongo.ErrNoDocuments {
+			return blog, err
+		}
+	}
+
+	return blog, nil
+}
+
 /*
 *
 
@@ -472,20 +486,17 @@ func (r *MongoBlogRepository) ValidateSlug(ctx context.Context, slug string) (bo
 func (r *MongoBlogRepository) CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error) {
 	var blog *Blog
 
-	// authorID := ctx.Value(ck.UserIDKey).(string)
-	// blogID := input.ID
+	authorID := ctx.Value(ck.UserIDKey).(string)
 
-	// hexAuthorID, err := bson.ObjectIDFromHex(authorID)
-	// if err != nil {
-	// 	return blog, err
-	// }
+	hexAuthorID, err := bson.ObjectIDFromHex(authorID)
+	if err != nil {
+		return blog, err
+	}
 
-	// hexBlogID, err := bson.ObjectIDFromHex(blogID)
-	// if err != nil {
-	// 	return blog, err
-	// }
-
-	updateFields := bson.M{}
+	updateFields := bson.M{
+		"author":    hexAuthorID,
+		"published": input.Published,
+	}
 
 	if len(input.Categories) > 0 {
 		updateFields["categories"] = input.Categories
@@ -508,10 +519,18 @@ func (r *MongoBlogRepository) CreateBlog(ctx context.Context, input *CreateBlogI
 	}
 
 	if input.Slug != "" {
-		updateFields["slug"] = input.ImageKey
+		updateFields["slug"] = input.Slug
 	}
 
-	updateFields["published"] = input.Published
+	result, err := r.collection.InsertOne(ctx, updateFields)
+	if err != nil {
+		return blog, err
+	}
+
+	blog, err = r.GetBlogById(ctx, result.InsertedID.(bson.ObjectID))
+	if err != nil {
+		return blog, nil
+	}
 
 	return blog, nil
 }

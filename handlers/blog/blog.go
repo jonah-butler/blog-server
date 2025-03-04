@@ -273,6 +273,8 @@ func (h *BlogHandler) handleSlugValidation(w http.ResponseWriter, req *http.Requ
 	u.WriteJSON(w, http.StatusOK, response)
 }
 
+// use required fields on a struct to ensure the
+// new document has all the fields it requires
 func (h *BlogHandler) handleNewBlog(w http.ResponseWriter, req *http.Request) {
 	req.Body = http.MaxBytesReader(w, req.Body, 32<<20+512)
 
