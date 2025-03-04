@@ -299,8 +299,14 @@ func (h *BlogHandler) handleNewBlog(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if input.Slug == "" {
+	if input.Slug == "" && !input.GenerateSlug {
 		error := fmt.Errorf("missing required form value: slug")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	if input.GenerateSlug && input.Title == "" {
+		error := fmt.Errorf("title value required to generate blog slug")
 		u.WriteJSONErr(w, http.StatusBadRequest, error)
 		return
 	}

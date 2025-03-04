@@ -201,6 +201,15 @@ func (s *BlogService) CreateBlog(ctx context.Context, input *r.CreateBlogInput) 
 		input.ImageKey = input.Image.Filename
 	}
 
+	if input.GenerateSlug {
+		isValid := false
+		slug := generateSlug(input.Title)
+
+		for !isValid {
+			response, err := s.ValidateSlug(ctx, slug)
+		}
+	}
+
 	// sanitize input text html
 	if input.Text != "" {
 		p := bluemonday.UGCPolicy()

@@ -12,10 +12,10 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 
 	// get latest blogs
 	server.HandleFunc("GET "+prefix+"/", h.handleBlogIndex)
-	// checks if the provided slug value is available
-	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", h.handleSlugValidation)
 	// get random blog
 	server.HandleFunc("GET "+prefix+"/random", h.handleRandomBlog)
+	// checks if the provided slug value is available
+	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", h.handleSlugValidation)
 	// search blogs
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	// lookup blog by slug

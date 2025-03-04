@@ -49,12 +49,7 @@ type Blog struct {
 	UpdatedAt     time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
-type UpdateBlogInput struct {
-	CreateBlogInput `bson:",inline"`
-	ID              string `bson:"_id" param:"id"`
-}
-
-type CreateBlogInput struct {
+type BaseBlogInput struct {
 	Categories    []string              `bson:"categories" param:"categories"`
 	Text          string                `bson:"text" param:"title"`
 	Published     bool                  `bson:"published" param:"published"`
@@ -64,4 +59,14 @@ type CreateBlogInput struct {
 	ImageLocation string                `bson:"featuredImageLocation"`
 	ImageKey      string                `bson:"featuredImageKey"`
 	Slug          string                `bson:"slug" param:"slug"`
+}
+
+type UpdateBlogInput struct {
+	BaseBlogInput `bson:",inline"`
+	ID            string `bson:"_id" param:"id"`
+}
+
+type CreateBlogInput struct {
+	BaseBlogInput `bson:",inline"`
+	GenerateSlug  bool `bson:"generateSlug" param:"generateSlug"`
 }
