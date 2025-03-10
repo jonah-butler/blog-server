@@ -12,20 +12,22 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 
 	// get latest blogs
 	server.HandleFunc("GET "+prefix+"/", h.handleBlogIndex)
+	// new blog
+	server.HandleFunc("POST "+prefix+"/", middlewares.BearerAuthMiddleware(h.handleNewBlog))
 	// get random blog
 	server.HandleFunc("GET "+prefix+"/random", h.handleRandomBlog)
 	// checks if the provided slug value is available
-	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", h.handleSlugValidation)
+	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", middlewares.BearerAuthMiddleware(h.handleSlugValidation))
 	// search blogs
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	// lookup blog by slug
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
 	// update blog rating
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
-	// new blog
-	server.HandleFunc("POST "+prefix+"/{userID}", middlewares.BearerAuthMiddleware(h.handleNewBlog))
 	// update blog
-	server.HandleFunc("POST "+prefix+"/{id}/edit/{userID}", middlewares.BearerAuthMiddleware(h.handleUpdatetBlog))
+	server.HandleFunc("POST "+prefix+"/{id}/edit", middlewares.BearerAuthMiddleware(h.handleUpdatetBlog))
+	// update blog
+	server.HandleFunc("DELETE "+prefix+"/{id}/delete-image", middlewares.BearerAuthMiddleware(h.handleImageDelete))
 
 	//
 	// BLOG CATEGORIES

@@ -27,6 +27,10 @@ type BlogUpdateResponse struct {
 	Blog *Blog `json:"blog"`
 }
 
+type GenericUpdateResponse struct {
+	Affected int `json:"affected"`
+}
+
 type SlugValidationResponse struct {
 	IsAvailable bool `json:"isAvailable"`
 }
@@ -35,7 +39,7 @@ type Blog struct {
 	Categories    []string      `bson:"categories" json:"categories"`
 	Rating        int           `bson:"rating" json:"rating"`
 	Views         int           `bson:"views" json:"views"`
-	ID            bson.ObjectID `bson:"_id" json:"_id"`
+	ID            bson.ObjectID `bson:"_id,omitempty" json:"_id"`
 	Author        bson.ObjectID `bson:"author" json:"author"`
 	Title         string        `bson:"title" json:"title"`
 	ImageLocation string        `bson:"featuredImageLocation" json:"featuredImageLocation"`
@@ -50,23 +54,23 @@ type Blog struct {
 }
 
 type BaseBlogInput struct {
-	Categories    []string              `bson:"categories" param:"categories"`
-	Text          string                `bson:"text" param:"title"`
-	Published     bool                  `bson:"published" param:"published"`
-	Title         string                `bson:"title" param:"title"`
-	Image         *multipart.FileHeader `bson:"-" param:"image"`     // ignored bson -> ignored in the mongo upsert
-	ImageBytes    []byte                `bson:"-" param:"imageData"` // ignored bson -> ignored in the mongo upsert
+	Categories    []string              `bson:"categories" form:"categories"`
+	Text          string                `bson:"text" form:"text"`
+	Published     bool                  `bson:"published" form:"published"`
+	Title         string                `bson:"title" form:"title"`
+	Image         *multipart.FileHeader `bson:"-" form:"image"`     // ignored bson -> ignored in the mongo upsert
+	ImageBytes    []byte                `bson:"-" form:"imageData"` // ignored bson -> ignored in the mongo upsert
 	ImageLocation string                `bson:"featuredImageLocation"`
 	ImageKey      string                `bson:"featuredImageKey"`
-	Slug          string                `bson:"slug" param:"slug"`
+	Slug          string                `bson:"slug" form:"slug"`
 }
 
 type UpdateBlogInput struct {
 	BaseBlogInput `bson:",inline"`
-	ID            string `bson:"_id" param:"id"`
+	ID            string `bson:"_id" form:"id"`
 }
 
 type CreateBlogInput struct {
 	BaseBlogInput `bson:",inline"`
-	GenerateSlug  bool `bson:"generateSlug" param:"generateSlug"`
+	GenerateSlug  bool `bson:"generateSlug" form:"generateSlug"`
 }

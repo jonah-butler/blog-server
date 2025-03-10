@@ -1,11 +1,14 @@
 package blog
 
 import (
+	ck "blog-api/contextkeys"
 	r "blog-api/repositories/blog"
 	"blog-api/s3"
 	"context"
+	"fmt"
 
 	"github.com/microcosm-cc/bluemonday"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type BlogService struct {
@@ -143,9 +146,15 @@ func (s *BlogService) LikeBlog(ctx context.Context, id string) (r.BlogUpdateResp
 
 func (s *BlogService) UpdateBlog(ctx context.Context, input *r.UpdateBlogInput) (r.BlogUpdateResponse, error) {
 	var response r.BlogUpdateResponse
+
 	// if a file was included process first
 	if input.Image != nil {
-		url, err := s3.UploadToS3(input.Image, input.ImageBytes)
+		authorID, ok := ctx.Value(ck.UserIDKey).(string)
+		if !ok {
+			return response, fmt.Errorf("user id missing in context")
+		}
+
+		url, err := s3.UploadToS3(input.Image, input.ImageBytes, authorID)
 		if err != nil {
 			return response, err
 		}
@@ -178,6 +187,7 @@ func (s *BlogService) ValidateSlug(ctx context.Context, slug string) (r.SlugVali
 	var response r.SlugValidationResponse
 
 	isAvailable, err := s.blogRepo.ValidateSlug(ctx, slug)
+	fmt.Println("is available: ", isAvailable, err)
 	if err != nil {
 		return response, err
 	}
@@ -188,10 +198,16 @@ func (s *BlogService) ValidateSlug(ctx context.Context, slug string) (r.SlugVali
 }
 
 func (s *BlogService) CreateBlog(ctx context.Context, input *r.CreateBlogInput) (r.BlogUpdateResponse, error) {
+	safetyNet := 50
 	var response r.BlogUpdateResponse
 	// if a file was included process first
 	if input.Image != nil {
-		url, err := s3.UploadToS3(input.Image, input.ImageBytes)
+		authorID, ok := ctx.Value(ck.UserIDKey).(string)
+		if !ok {
+			return response, fmt.Errorf("user id missing in context")
+		}
+
+		url, err := s3.UploadToS3(input.Image, input.ImageBytes, authorID)
 		if err != nil {
 			return response, err
 		}
@@ -202,11 +218,30 @@ func (s *BlogService) CreateBlog(ctx context.Context, input *r.CreateBlogInput) 
 	}
 
 	if input.GenerateSlug {
-		isValid := false
-		slug := generateSlug(input.Title)
+		originalSlug := generateSlug(input.Title)
+		fmt.Println(originalSlug)
+		slug := originalSlug
+		i := 1
 
-		for !isValid {
-			response, err := s.ValidateSlug(ctx, slug)
+		for {
+			validationResponse, err := s.ValidateSlug(ctx, slug)
+			if err != nil {
+				fmt.Println("the error in service", err)
+				return response, err
+			}
+
+			if validationResponse.IsAvailable {
+				input.Slug = slug
+				break
+			}
+
+			// likelihood of this happening is slim, but just in case
+			if i == safetyNet {
+				return response, fmt.Errorf("could not generate a unique slug after %d attempts", safetyNet)
+			}
+
+			slug = fmt.Sprintf("%s-%d", originalSlug, i)
+			i++
 		}
 	}
 
@@ -226,5 +261,47 @@ func (s *BlogService) CreateBlog(ctx context.Context, input *r.CreateBlogInput) 
 
 	response.Blog = blog
 
+	return response, nil
+}
+
+func (s *BlogService) DeleteImage(ctx context.Context, blogID string) (*r.GenericUpdateResponse, error) {
+	response := new(r.GenericUpdateResponse)
+
+	blogObjectID, err := bson.ObjectIDFromHex(blogID)
+	if err != nil {
+		return response, err
+	}
+
+	blog, err := s.blogRepo.GetBlogById(ctx, blogObjectID)
+	if err != nil {
+		return response, err
+	}
+
+	imageKey := blog.ImageKey
+
+	if imageKey == "" {
+		return response, fmt.Errorf("the provded blog ID contains no featured image key")
+	}
+
+	err = s3.DeleteFromS3(imageKey)
+	if err != nil {
+		return response, err
+	}
+
+	updates := bson.M{
+		"featuredImageKey":      "",
+		"featuredImageLocation": "",
+	}
+
+	additionalFilters := bson.M{
+		"featuredImageKey": imageKey,
+	}
+
+	docsAffected, err := s.blogRepo.ClearBlogFields(ctx, updates, additionalFilters)
+	if err != nil {
+		return response, err
+	}
+
+	response.Affected = docsAffected
 	return response, nil
 }

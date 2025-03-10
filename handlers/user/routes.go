@@ -6,7 +6,8 @@ import (
 
 func (h *UserHandler) RegisterUserRoutes(prefix string, server *http.ServeMux) {
 	// user
-	server.HandleFunc("GET "+prefix+"/{userID}", h.GetUser)
-	server.HandleFunc("POST "+prefix+"/register", h.RegisterUser)
-	server.HandleFunc("POST "+prefix+"/login", h.UserLogin)
+	server.HandleFunc("GET "+prefix+"/{userID}", h.getUser)
+	server.HandleFunc("POST "+prefix+"/register", h.registerUser)
+	server.HandleFunc("POST "+prefix+"/login", h.userLogin)
+	server.HandleFunc("POST "+prefix+"/reset-password", h.resetPassword)
 }

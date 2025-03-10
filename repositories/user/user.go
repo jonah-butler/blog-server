@@ -9,7 +9,8 @@ import (
 )
 
 type UserRepository interface {
-	GetUser(ctx context.Context) error
+	GetUserByID(ctx context.Context) error
+	GetUserByEmail(ctx context.Context, email string) (*UserWithoutPassword, error)
 	RegisterUser(ctx context.Context) error
 	FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error)
 }
@@ -24,9 +25,25 @@ func NewUserRepository(db *mongo.Database) UserRepository {
 	}
 }
 
-func (r *MongoUserRepository) GetUser(ctx context.Context) error { return nil }
+func (r *MongoUserRepository) GetUserByID(ctx context.Context) error { return nil }
 
 func (r *MongoUserRepository) RegisterUser(ctx context.Context) error { return nil }
+
+func (r *MongoUserRepository) GetUserByEmail(ctx context.Context, email string) (*UserWithoutPassword, error) {
+	var user *UserWithoutPassword
+
+	filter := bson.M{"email": email}
+
+	err := r.collection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return user, errors.New("user not found")
+		}
+		return user, err
+	}
+
+	return user, nil
+}
 
 func (r *MongoUserRepository) FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error) {
 	var user UserWithPassword

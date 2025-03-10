@@ -10,6 +10,10 @@ type UserLoginPost struct {
 	Password string `json:"password"`
 }
 
+type UserResetPasswordPost struct {
+	Email *string `json:"email"`
+}
+
 type User struct {
 	ID           bson.ObjectID `bson:"_id" json:"_id"`
 	Username     string        `bson:"username" json:"username"`
@@ -19,6 +23,11 @@ type User struct {
 type UserWithPassword struct {
 	User     `bson:",inline"`
 	Password string `bson:"password" json:"password"`
+}
+
+type UserWithoutPassword struct {
+	Email string        `bson:"email" json:"email"`
+	ID    bson.ObjectID `bson:"_id" json:"_id"`
 }
 
 type UserResponse struct {

@@ -17,6 +17,7 @@ import (
 type BlogRepository interface {
 	GetBlogIndex(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	GetBlogBySlug(ctx context.Context, slug string) (*Blog, error)
+	GetBlogById(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetRandomBlog(ctx context.Context) ([]*Blog, error)
@@ -26,6 +27,7 @@ type BlogRepository interface {
 	LikeBlog(ctx context.Context, id string) (*Blog, error)
 	IncrementViewCount(slug string)
 	UpdateBlog(ctx context.Context, input *UpdateBlogInput) (*Blog, error)
+	ClearBlogFields(ctx context.Context, blogInput, additionalFilters bson.M) (int, error)
 	ValidateSlug(ctx context.Context, slug string) (bool, error)
 	CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error)
 }
@@ -84,9 +86,9 @@ func (r *MongoBlogRepository) GetBlogIndex(ctx context.Context, q *BlogQuery) ([
 func (r *MongoBlogRepository) GetBlogById(ctx context.Context, id bson.ObjectID) (*Blog, error) {
 	var blog *Blog
 
-	previousOpts := bson.M{"_id": id}
+	opts := bson.M{"_id": id}
 
-	if err := r.collection.FindOne(ctx, previousOpts).Decode(&blog); err != nil {
+	if err := r.collection.FindOne(ctx, opts).Decode(&blog); err != nil {
 		if err != mongo.ErrNoDocuments {
 			return blog, err
 		}
@@ -472,6 +474,7 @@ func (r *MongoBlogRepository) ValidateSlug(ctx context.Context, slug string) (bo
 
 	err := r.collection.FindOne(ctx, filter).Decode(&blog)
 
+	fmt.Println("the error: ", err)
 	if err == mongo.ErrNoDocuments {
 		return true, nil
 	}
@@ -484,53 +487,79 @@ func (r *MongoBlogRepository) ValidateSlug(ctx context.Context, slug string) (bo
 }
 
 func (r *MongoBlogRepository) CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error) {
-	var blog *Blog
-
-	authorID := ctx.Value(ck.UserIDKey).(string)
+	// Extract and validate the author ID from the context
+	authorID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("user id missing in context")
+	}
 
 	hexAuthorID, err := bson.ObjectIDFromHex(authorID)
 	if err != nil {
-		return blog, err
+		return nil, err
 	}
 
-	updateFields := bson.M{
-		"author":    hexAuthorID,
-		"published": input.Published,
+	// Initialize the Blog struct with defaults.
+	// Fields not provided in the input will remain their zero value or default if set in the struct.
+	now := time.Now()
+
+	blog := &Blog{
+		Author:        hexAuthorID,
+		Published:     input.Published,
+		Categories:    input.Categories,
+		Text:          input.Text,
+		Title:         input.Title,
+		ImageLocation: input.ImageLocation,
+		ImageKey:      input.ImageKey,
+		Slug:          input.Slug,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
-	if len(input.Categories) > 0 {
-		updateFields["categories"] = input.Categories
-	}
-
-	if input.Text != "" {
-		updateFields["text"] = input.Text
-	}
-
-	if input.Title != "" {
-		updateFields["title"] = input.Title
-	}
-
-	if input.ImageLocation != "" {
-		updateFields["featuredImageLocation"] = input.ImageLocation
-	}
-
-	if input.ImageKey != "" {
-		updateFields["featuredImageKey"] = input.ImageKey
-	}
-
-	if input.Slug != "" {
-		updateFields["slug"] = input.Slug
-	}
-
-	result, err := r.collection.InsertOne(ctx, updateFields)
+	// Insert the blog directly.
+	result, err := r.collection.InsertOne(ctx, blog)
 	if err != nil {
-		return blog, err
+		return nil, err
 	}
 
-	blog, err = r.GetBlogById(ctx, result.InsertedID.(bson.ObjectID))
+	// Convert the inserted ID and retrieve the blog from the DB.
+	insertedID, ok := result.InsertedID.(bson.ObjectID)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert inserted id to ObjectID")
+	}
+
+	return r.GetBlogById(ctx, insertedID)
+}
+
+func (r *MongoBlogRepository) ClearBlogFields(ctx context.Context, blogInput, additionalFilters bson.M) (int, error) {
+	affected := 0
+	// Extract and validate the author ID from the context
+	authorID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return affected, fmt.Errorf("user id missing in context")
+	}
+
+	hexAuthorID, err := bson.ObjectIDFromHex(authorID)
 	if err != nil {
-		return blog, nil
+		return affected, err
 	}
 
-	return blog, nil
+	filter := bson.M{
+		"author": hexAuthorID,
+	}
+
+	// combine filters
+	for v := range additionalFilters {
+		filter[v] = additionalFilters[v]
+	}
+
+	update := bson.M{"$set": blogInput}
+
+	result, err := r.collection.UpdateMany(ctx, filter, update)
+	if err != nil {
+		return affected, err
+	}
+
+	affected = int(result.MatchedCount)
+
+	return affected, nil
 }

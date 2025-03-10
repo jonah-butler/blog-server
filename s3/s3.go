@@ -14,7 +14,32 @@ import (
 
 const DefaultContentType = "application/octet-stream"
 
-func UploadToS3(fileHeader *multipart.FileHeader, fileData []byte) (string, error) {
+func DeleteFromS3(key string) error {
+	err := hasS3Credentials()
+	if err != nil {
+		return err
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return err
+	}
+
+	s3Client := s3.NewFromConfig(cfg)
+
+	bucket := os.Getenv("AWS_BUCKET")
+
+	if _, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UploadToS3(fileHeader *multipart.FileHeader, fileData []byte, userId string) (string, error) {
 	err := hasS3Credentials()
 	if err != nil {
 		return "", err
@@ -32,7 +57,7 @@ func UploadToS3(fileHeader *multipart.FileHeader, fileData []byte) (string, erro
 	contentType := getContentType(fileHeader.Filename)
 
 	bucketName := os.Getenv("AWS_BUCKET")
-	key := "featured_images/" + fileHeader.Filename
+	key := "featured_images/users/" + userId + "/" + fileHeader.Filename
 
 	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:        &bucketName,

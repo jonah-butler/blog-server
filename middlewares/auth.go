@@ -35,14 +35,6 @@ func BearerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// ensures only the userID within the token
-		// can interact with that specific userID path value
-		if userID != req.PathValue("userID") {
-			error := fmt.Errorf("invalid acces")
-			u.WriteJSONErr(w, http.StatusUnauthorized, error)
-			return
-		}
-
 		ctx := context.WithValue(req.Context(), ck.UserIDKey, userID)
 
 		next(w, req.WithContext(ctx))

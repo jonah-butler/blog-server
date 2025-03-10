@@ -19,6 +19,9 @@ import (
 	userRepo "blog-api/repositories/user"
 	userService "blog-api/services/user"
 
+	passwordResetRepo "blog-api/repositories/email"
+	passwordResetService "blog-api/services/email"
+
 	"github.com/joho/godotenv"
 )
 
@@ -63,10 +66,12 @@ func main() {
 	// initialize repos
 	blogRepo := blogRepo.NewBlogRepository(db.DB)
 	userRepo := userRepo.NewUserRepository(db.DB)
+	passwordResetRepo := passwordResetRepo.NewPasswordResetRepository(db.DB)
 
 	// initialize services
+	passwordResetService := passwordResetService.NewPasswordResetService(passwordResetRepo)
 	blogService := blogService.NewBlogService(blogRepo)
-	userService := userService.NewUserService(userRepo)
+	userService := userService.NewUserService(userRepo, *passwordResetService)
 
 	// initialize handlers
 	blogHandler := blogHandler.NewBlogHandler(blogService)

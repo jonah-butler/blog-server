@@ -239,6 +239,7 @@ func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request
 		return
 	}
 
+	fmt.Println(input.ID, req.PathValue("id"))
 	if input.ID == "" || input.ID != req.PathValue("id") {
 		error := fmt.Errorf("blog id missing in payload or mismatched")
 		u.WriteJSONErr(w, http.StatusBadRequest, error)
@@ -319,5 +320,22 @@ func (h *BlogHandler) handleNewBlog(w http.ResponseWriter, req *http.Request) {
 	}
 
 	u.WriteJSON(w, http.StatusOK, response)
+}
 
+func (h *BlogHandler) handleImageDelete(w http.ResponseWriter, req *http.Request) {
+	blogID := req.PathValue("id")
+	if blogID == "" {
+		error := fmt.Errorf("not a valid post ID")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.blogService.DeleteImage(req.Context(), blogID)
+	if err != nil {
+		error := fmt.Errorf("failed to delete image: %s", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
 }
