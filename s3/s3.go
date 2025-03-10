@@ -1,5 +1,15 @@
 package s3
 
+/*
+==== S3 ==========================================================
+|			                                                           |
+| S3 utility wrappers for the following interactions: 	         |
+| - Deleting an object from S3			  	                         |
+|	- Uploading a new object to s3                                 |
+|																						                     |
+==================================================================
+*/
+
 import (
 	"bytes"
 	"context"

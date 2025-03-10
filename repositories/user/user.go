@@ -10,9 +10,10 @@ import (
 
 type UserRepository interface {
 	GetUserByID(ctx context.Context) error
-	GetUserByEmail(ctx context.Context, email string) (*UserWithoutPassword, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	RegisterUser(ctx context.Context) error
 	FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error)
+	UpdateUserPassword(ctx context.Context, password string, user bson.ObjectID) (bool, error)
 }
 
 type MongoUserRepository struct {
@@ -29,8 +30,8 @@ func (r *MongoUserRepository) GetUserByID(ctx context.Context) error { return ni
 
 func (r *MongoUserRepository) RegisterUser(ctx context.Context) error { return nil }
 
-func (r *MongoUserRepository) GetUserByEmail(ctx context.Context, email string) (*UserWithoutPassword, error) {
-	var user *UserWithoutPassword
+func (r *MongoUserRepository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	var user *User
 
 	filter := bson.M{"email": email}
 
@@ -58,4 +59,23 @@ func (r *MongoUserRepository) FindUser(ctx context.Context, payload UserLoginPos
 	}
 
 	return &user, nil
+}
+
+func (r *MongoUserRepository) UpdateUserPassword(ctx context.Context, password string, user bson.ObjectID) (bool, error) {
+	filter := bson.M{
+		"_id": user,
+	}
+
+	updates := bson.M{
+		"$set": bson.M{
+			"password": password,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, updates)
+	if err != nil {
+		return false, err
+	}
+
+	return result.ModifiedCount == 1, nil
 }

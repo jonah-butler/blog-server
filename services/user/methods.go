@@ -17,8 +17,12 @@ func generateToken() (string, string, error) {
 	token := base64.RawURLEncoding.EncodeToString(tokenBytes)
 
 	// Compute the SHA-256 hash of the token for storage
-	hash := sha256.Sum256([]byte(token))
-	tokenHash := base64.RawURLEncoding.EncodeToString(hash[:])
+	tokenHash := computeHash(token)
 
 	return token, tokenHash, nil
+}
+
+func computeHash(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return base64.RawURLEncoding.EncodeToString(hash[:])
 }

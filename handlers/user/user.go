@@ -79,3 +79,44 @@ func (h *UserHandler) resetPassword(w http.ResponseWriter, req *http.Request) {
 
 	u.WriteJSON(w, http.StatusOK, response)
 }
+
+func (h *UserHandler) validatePasswordReset(w http.ResponseWriter, req *http.Request) {
+	var payload r.UserNewPasswordPost
+
+	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+		error := fmt.Errorf("failed to decode request: %s", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	if payload.Password != payload.PasswordVerification || payload.Password == "" {
+		error := fmt.Errorf("passwords must match")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	if payload.ResetToken == "" {
+		error := fmt.Errorf("missing reset token data")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	didUpdate, err := h.userService.ValidatePasswordReset(req.Context(), &payload)
+	if err != nil {
+		error := fmt.Errorf("failed to validate password update request: %s", err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	if !didUpdate {
+		error := fmt.Errorf("password did not update")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response := &r.UserPasswordResetResponse{
+		DidUpdate: didUpdate,
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+}

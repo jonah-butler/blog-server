@@ -1,23 +1,24 @@
 package email
 
 import (
-	e "blog-api/repositories/email"
+	er "blog-api/repositories/email"
 	"context"
 	"os"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type PasswordResetService struct {
-	passwordResetRepo e.PasswordResetRepository
+	passwordResetRepo er.PasswordResetRepository
 }
 
-func NewPasswordResetService(repo e.PasswordResetRepository) *PasswordResetService {
+func NewPasswordResetService(repo er.PasswordResetRepository) *PasswordResetService {
 	return &PasswordResetService{passwordResetRepo: repo}
 }
 
-func (s *PasswordResetService) CreatePasswordResetEntry(ctx context.Context, payload *e.PasswordResetMeta) error {
+func (s *PasswordResetService) CreatePasswordResetEntry(ctx context.Context, payload *er.PasswordResetMeta) error {
 	err := s.passwordResetRepo.CreatePasswordResetEntry(ctx, payload)
 	if err != nil {
 		return err
@@ -26,24 +27,21 @@ func (s *PasswordResetService) CreatePasswordResetEntry(ctx context.Context, pay
 	return nil
 }
 
-func (s *PasswordResetService) SendEmail(email, token string) error {
-	from := mail.NewEmail("The Daemon", "daemon@jonahbutler.dev")
-	to := mail.NewEmail("Password Reset Requester", email)
-	subject := "Blog Password Reset"
+func (s *PasswordResetService) ValidatePasswordReset(ctx context.Context, hash string) (*er.PasswordResetMeta, error) {
+	meta, err := s.passwordResetRepo.ValidatePasswordReset(ctx, hash)
+	if err != nil {
+		return meta, err
+	}
 
-	url := "https://jonahbutler.dev/password-reset?token=" + token
+	return meta, nil
+}
 
-	plainTextContent := "A request to reset your password was submitted.\n\n" +
-		"If you did not make this request, ignore this email as someone may have accidentally typed your email address.\n\n" +
-		"To update your password please visit: \n\n" +
-		url + "\n\n"
+func (s *PasswordResetService) DeletePasswordResetEntry(ctx context.Context, hash string, user bson.ObjectID) (bool, error) {
+	return s.passwordResetRepo.DeletePasswordResetEntry(ctx, hash, user)
+}
 
-	htmlContent := "<div><h3>A request to reset your password was submitted.</h3></div>" +
-		"<div><strong>If you did not make this request, ignore this email as someone may have accidentally typed your email address.</strong></div>" +
-		"<div><p>To update your password please visit:</p></div>" +
-		"<div><a href='" + url + "'" + ">" + url + "</a></div"
-
-	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+func (s *PasswordResetService) SendEmail(payload *er.SendgridPayload) error {
+	message := mail.NewSingleEmail(payload.From, payload.Subject, payload.To, payload.PlainText, payload.HTMLText)
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	_, err := client.Send(message)
