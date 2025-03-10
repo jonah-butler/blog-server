@@ -28,8 +28,16 @@ import (
 func main() {
 
 	// load env
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatal("Unable to load env: ", err.Error())
+	if os.Getenv("RUNNING_IN_DOCKER") == "true" {
+		err := godotenv.Load(".env") // Load from current directory inside Docker
+		if err != nil {
+			log.Fatalf("Unable to load env inside Docker: %v", err)
+		}
+	} else {
+		err := godotenv.Load("../.env") // Load from parent directory for local dev
+		if err != nil {
+			log.Fatalf("Unable to load env in local environment: %v", err)
+		}
 	}
 
 	// connect to db
