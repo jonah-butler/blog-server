@@ -136,3 +136,26 @@ func (s *UserService) UpdateUserPassword(ctx context.Context, password string, u
 
 	return didUpdate, nil
 }
+
+func (s *UserService) SendEmailToUser(ctx context.Context, emailData *r.UserSendEmailPost) error {
+	user, err := s.userRepo.GetUserByEmail(ctx, emailData.To)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return fmt.Errorf("the provided email address is not a supported account")
+	}
+
+	email, err := s.passwordResetService.PrepareContactEmail(emailData)
+	if err != nil {
+		return err
+	}
+
+	err = s.passwordResetService.SendEmail(email)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

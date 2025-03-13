@@ -120,3 +120,40 @@ func (h *UserHandler) validatePasswordReset(w http.ResponseWriter, req *http.Req
 
 	u.WriteJSON(w, http.StatusOK, response)
 }
+
+func (h *UserHandler) sendEmail(w http.ResponseWriter, req *http.Request) {
+	toAddress := req.PathValue("emailAddress")
+	if !isValidEmail(toAddress) {
+		error := fmt.Errorf("the provided to address is not a valid email")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	emailData := new(r.UserSendEmailPost)
+
+	if err := json.NewDecoder(req.Body).Decode(emailData); err != nil {
+		error := fmt.Errorf("failed to decode email payload: %s", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	if !isValidEmail(emailData.To) || !isValidEmail(emailData.From) {
+		error := fmt.Errorf("the emails provided in the payload are invalid")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	if emailData.To != toAddress {
+		error := fmt.Errorf("both TO addresses must match")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	err := h.userService.SendEmailToUser(req.Context(), emailData)
+	if err != nil {
+		error := fmt.Errorf("failed to send email %s", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+	}
+
+	u.WriteJSON(w, http.StatusOK, u.EmptyResponse())
+}
