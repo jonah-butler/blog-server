@@ -1,9 +1,9 @@
 package user
 
 import (
-	er "blog-api/repositories/email"
+	prr "blog-api/repositories/passwordreset"
 	r "blog-api/repositories/user"
-	es "blog-api/services/email"
+	prs "blog-api/services/passwordreset"
 	"context"
 	"errors"
 	"fmt"
@@ -15,13 +15,14 @@ import (
 
 type UserService struct {
 	userRepo             r.UserRepository
-	passwordResetService es.PasswordResetService
+	passwordResetService prs.PasswordResetService
 }
 
-func NewUserService(userRepo r.UserRepository, passwordResetService es.PasswordResetService) *UserService {
+func NewUserService(userRepo r.UserRepository, passwordResetService prs.PasswordResetService) *UserService {
 	return &UserService{
 		userRepo:             userRepo,
 		passwordResetService: passwordResetService,
+		emailService:         emailService,
 	}
 }
 
@@ -52,7 +53,7 @@ func (s *UserService) UserLogin(ctx context.Context, payload r.UserLoginPost) (r
 }
 
 func (s *UserService) UserResetPassword(ctx context.Context, payload r.UserResetPasswordPost) (*er.PasswordResetResponse, error) {
-	response := &er.PasswordResetResponse{
+	response := &prr.PasswordResetResponse{
 		Message: "If the provided email address exists in our system, you should receive an email soon!",
 	}
 
@@ -66,7 +67,7 @@ func (s *UserService) UserResetPassword(ctx context.Context, payload r.UserReset
 		return response, err
 	}
 
-	passwordResetMeta := &er.PasswordResetMeta{
+	passwordResetMeta := &prr.PasswordResetMeta{
 		User:      user.ID,
 		CreatedAt: time.Now(),
 		Hash:      hash,
@@ -77,7 +78,7 @@ func (s *UserService) UserResetPassword(ctx context.Context, payload r.UserReset
 		return response, err
 	}
 
-	message, err := s.passwordResetService.PreparePasswordResetData(token, user.Email)
+	message, err := s.emailService.PreparePasswordResetData(token, user.Email)
 	if err != nil {
 		return response, err
 	}
@@ -99,7 +100,7 @@ func (s *UserService) ValidatePasswordReset(ctx context.Context, payload *r.User
 	}
 
 	// evaluate createAt and revoke stale token
-	isFresh := s.passwordResetService.EvaluatedElapsedTime(meta.CreatedAt, 1)
+	isFresh := s.emailService.EvaluatedElapsedTime(meta.CreatedAt, 1)
 	if !isFresh {
 		_, err := s.passwordResetService.DeletePasswordResetEntry(ctx, meta.Hash, meta.User)
 		if err != nil {

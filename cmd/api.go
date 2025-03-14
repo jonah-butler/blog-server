@@ -19,8 +19,8 @@ import (
 	userRepo "blog-api/repositories/user"
 	userService "blog-api/services/user"
 
-	passwordResetRepo "blog-api/repositories/email"
-	passwordResetService "blog-api/services/email"
+	passwordResetRepo "blog-api/repositories/passwordreset"
+	passwordResetService "blog-api/services/passwordreset"
 
 	"github.com/joho/godotenv"
 )
