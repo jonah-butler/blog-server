@@ -17,6 +17,7 @@ type PasswordResetMeta struct {
 	Hash      string        `bson:"hash" json:"hash"`
 }
 
+// remove this eventually
 type SendgridPayload struct {
 	From      *mail.Email
 	To        *mail.Email

@@ -3,6 +3,7 @@ package user
 import (
 	prr "blog-api/repositories/passwordreset"
 	r "blog-api/repositories/user"
+	es "blog-api/services/email"
 	prs "blog-api/services/passwordreset"
 	"context"
 	"errors"
@@ -16,9 +17,10 @@ import (
 type UserService struct {
 	userRepo             r.UserRepository
 	passwordResetService prs.PasswordResetService
+	emailService         es.EmailService
 }
 
-func NewUserService(userRepo r.UserRepository, passwordResetService prs.PasswordResetService) *UserService {
+func NewUserService(userRepo r.UserRepository, passwordResetService prs.PasswordResetService, emailService es.EmailService) *UserService {
 	return &UserService{
 		userRepo:             userRepo,
 		passwordResetService: passwordResetService,
@@ -52,7 +54,7 @@ func (s *UserService) UserLogin(ctx context.Context, payload r.UserLoginPost) (r
 	return userResponse, err
 }
 
-func (s *UserService) UserResetPassword(ctx context.Context, payload r.UserResetPasswordPost) (*er.PasswordResetResponse, error) {
+func (s *UserService) UserResetPassword(ctx context.Context, payload r.UserResetPasswordPost) (*prr.PasswordResetResponse, error) {
 	response := &prr.PasswordResetResponse{
 		Message: "If the provided email address exists in our system, you should receive an email soon!",
 	}
@@ -148,7 +150,7 @@ func (s *UserService) SendEmailToUser(ctx context.Context, emailData *r.UserSend
 		return fmt.Errorf("the provided email address is not a supported account")
 	}
 
-	email, err := s.passwordResetService.PrepareContactEmail(emailData)
+	email, err := s.emailService.PrepareContactEmail(emailData)
 	if err != nil {
 		return err
 	}

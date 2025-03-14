@@ -1,53 +1,82 @@
 package email
 
 import (
-	er "blog-api/repositories/email"
-	"context"
+	ur "blog-api/repositories/user"
+	"fmt"
 	"os"
+	"time"
 
-	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type PasswordResetService struct {
-	passwordResetRepo er.PasswordResetRepository
+type EmailService struct{}
+
+func NewEmailService() *EmailService {
+	return &EmailService{}
 }
 
-func NewPasswordResetService(repo er.PasswordResetRepository) *PasswordResetService {
-	return &PasswordResetService{passwordResetRepo: repo}
-}
+func (s *EmailService) PreparePasswordResetData(token, email string) (*SendgridPayload, error) {
+	payload := new(SendgridPayload)
+	url := "https://jonahbutler.dev/password-reset?resetToken=" + token
 
-func (s *PasswordResetService) CreatePasswordResetEntry(ctx context.Context, payload *er.PasswordResetMeta) error {
-	err := s.passwordResetRepo.CreatePasswordResetEntry(ctx, payload)
-	if err != nil {
-		return err
+	daemon, ok := os.LookupEnv("DAEMON_ADDRESS")
+	if !ok {
+		return payload, fmt.Errorf("no to address in environment")
 	}
 
-	return nil
+	payload.Subject = "Password Reset"
+
+	payload.To = mail.NewEmail("Password Reset Requester", email)
+	payload.From = mail.NewEmail("Password Daemon", daemon)
+
+	payload.PlainText = "A request to reset your password was submitted.\n\n" +
+		"If you did not make this request, ignore this email as someone may have accidentally typed your email address.\n\n" +
+		"To update your password please visit: \n\n" +
+		url + "\n\n"
+
+	payload.HTMLText = "<div><h3>A request to reset your password was submitted.</h3></div>" +
+		"<div><strong>If you did not make this request, ignore this email as someone may have accidentally typed your email address.</strong></div>" +
+		"<div><p>To update your password please visit:</p></div>" +
+		"<div><a href='" + url + "'" + ">" + url + "</a></div"
+
+	return payload, nil
 }
 
-func (s *PasswordResetService) ValidatePasswordReset(ctx context.Context, hash string) (*er.PasswordResetMeta, error) {
-	meta, err := s.passwordResetRepo.ValidatePasswordReset(ctx, hash)
-	if err != nil {
-		return meta, err
+func (s *EmailService) PrepareContactEmail(emailData *ur.UserSendEmailPost) (*SendgridPayload, error) {
+	payload := new(SendgridPayload)
+
+	daemon, ok := os.LookupEnv("DAEMON_ADDRESS")
+	if !ok {
+		return payload, fmt.Errorf("no to address in environment")
 	}
 
-	return meta, nil
+	payload.Subject = emailData.Subject
+
+	payload.To = mail.NewEmail("Contact Requester", emailData.To)
+	payload.From = mail.NewEmail("Contact Daemon", daemon)
+
+	payload.PlainText = "This message was delivered on behalf of: " + emailData.From + "\n\n" +
+		"EMAIL IS AS FOLLOWS:\n\n" +
+		"--------------------\n\n" +
+		emailData.Message + "\n\n" +
+		"Respond to: " + emailData.From
+
+	payload.HTMLText = "<div><h3>This message was delivered on behalf of: " + emailData.From + "</h3></div>" +
+		"<div><p>EMAIL IS AS FOLLOWS:</p></div>" +
+		"<div>--------------------</div>" +
+		"<div><p>" + emailData.Message + "</p></div>" +
+		"</br>" +
+		"<div><strong>" + "Respond to: " + emailData.From + "</strong></div>"
+
+	return payload, nil
 }
 
-func (s *PasswordResetService) DeletePasswordResetEntry(ctx context.Context, hash string, user bson.ObjectID) (bool, error) {
-	return s.passwordResetRepo.DeletePasswordResetEntry(ctx, hash, user)
-}
+func (s *EmailService) EvaluatedElapsedTime(timestamp time.Time, hours int) bool {
+	now := time.Now()
 
-func (s *PasswordResetService) SendEmail(payload *er.SendgridPayload) error {
-	message := mail.NewSingleEmail(payload.From, payload.Subject, payload.To, payload.PlainText, payload.HTMLText)
+	elapsed := now.Sub(timestamp)
 
-	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
-	_, err := client.Send(message)
-	if err != nil {
-		return err
-	}
+	hoursElapsed := elapsed.Hours()
 
-	return nil
+	return (hoursElapsed > 0 && hoursElapsed < float64(hours))
 }

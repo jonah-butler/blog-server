@@ -2,6 +2,7 @@ package passwordreset
 
 import (
 	prr "blog-api/repositories/passwordreset"
+	es "blog-api/services/email"
 	"context"
 	"os"
 
@@ -40,7 +41,7 @@ func (s *PasswordResetService) DeletePasswordResetEntry(ctx context.Context, has
 	return s.passwordResetRepo.DeletePasswordResetEntry(ctx, hash, user)
 }
 
-func (s *PasswordResetService) SendEmail(payload *prr.SendgridPayload) error {
+func (s *PasswordResetService) SendEmail(payload *es.SendgridPayload) error {
 	message := mail.NewSingleEmail(payload.From, payload.Subject, payload.To, payload.PlainText, payload.HTMLText)
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))

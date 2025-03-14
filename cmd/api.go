@@ -15,6 +15,8 @@ import (
 	blogRepo "blog-api/repositories/blog"
 	blogService "blog-api/services/blog"
 
+	emailService "blog-api/services/email"
+
 	userHandler "blog-api/handlers/user"
 	userRepo "blog-api/repositories/user"
 	userService "blog-api/services/user"
@@ -77,9 +79,10 @@ func main() {
 	passwordResetRepo := passwordResetRepo.NewPasswordResetRepository(db.DB)
 
 	// initialize services
+	emailService := emailService.NewEmailService()
 	passwordResetService := passwordResetService.NewPasswordResetService(passwordResetRepo)
 	blogService := blogService.NewBlogService(blogRepo)
-	userService := userService.NewUserService(userRepo, *passwordResetService)
+	userService := userService.NewUserService(userRepo, *passwordResetService, *emailService)
 
 	// initialize handlers
 	blogHandler := blogHandler.NewBlogHandler(blogService)
