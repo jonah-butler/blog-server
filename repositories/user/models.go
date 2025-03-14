@@ -21,6 +21,13 @@ type UserNewPasswordPost struct {
 	PasswordVerification string `json:"passwordVerification"`
 }
 
+type UserSendEmailPost struct {
+	From    string `json:"from"`
+	Message string `json:"message"`
+	Subject string `json:"subject"`
+	To      string `json:"to"`
+}
+
 // User Base
 type User struct {
 	ID           bson.ObjectID `bson:"_id" json:"_id"`

@@ -42,6 +42,7 @@ func WriteJSONErr(w http.ResponseWriter, status int, err error) {
 
 func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 
 	if encoderErr := json.NewEncoder(w).Encode(data); encoderErr != nil {
 		handleFallBackResponse(w)
@@ -55,4 +56,9 @@ func handleFallBackResponse(w http.ResponseWriter) {
 		http.Error(w, fmt.Sprintf("Internal Server Error: failed to write response: %v", writeErr), http.StatusInternalServerError)
 		return
 	}
+}
+
+func EmptyResponse() map[string]interface{} {
+	emptyResponse := map[string]interface{}{}
+	return emptyResponse
 }
