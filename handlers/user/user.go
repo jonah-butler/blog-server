@@ -44,14 +44,7 @@ func (h *UserHandler) userLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		error := fmt.Errorf("failed to marshall json: %s", err)
-		u.WriteJSONErr(w, http.StatusInternalServerError, error)
-		return
-	}
-
-	u.WriteJSON(w, http.StatusOK, jsonData)
+	u.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *UserHandler) resetPassword(w http.ResponseWriter, req *http.Request) {

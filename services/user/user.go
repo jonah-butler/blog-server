@@ -51,6 +51,8 @@ func (s *UserService) UserLogin(ctx context.Context, payload r.UserLoginPost) (r
 
 	userResponse = r.ConvertToUserResponse(user, token)
 
+	fmt.Println("userResponse: ", userResponse)
+
 	return userResponse, err
 }
 

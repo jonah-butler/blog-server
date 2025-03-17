@@ -6,6 +6,7 @@ import (
 	"blog-api/s3"
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/microcosm-cc/bluemonday"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -304,4 +305,56 @@ func (s *BlogService) DeleteImage(ctx context.Context, blogID string) (*r.Generi
 
 	response.Affected = docsAffected
 	return response, nil
+}
+
+func (s *BlogService) DeleteBlog(ctx context.Context, blogID string) (*r.GenericUpdateResponse, error) {
+	response := new(r.GenericUpdateResponse)
+
+	blogObjectID, err := bson.ObjectIDFromHex(blogID)
+	if err != nil {
+		return response, err
+	}
+
+	userID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return response, fmt.Errorf("failed to access context values")
+	}
+
+	authorObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return response, err
+	}
+
+	blog, err := s.blogRepo.GetBlogByIdAndAuthor(ctx, blogObjectID, authorObjectID)
+	if err != nil {
+		return response, err
+	}
+
+	resources := os.Getenv("AWS_BUCKET")
+	imageSources, err := extraImageSourcesFromHTML(blog.Text, resources)
+	if err != nil {
+		return response, err
+	}
+
+	if len(imageSources) > 0 {
+		// delete images from s3
+		for _, src := range imageSources {
+			key := extractKeyFromImageSource(src, resources+".s3.amazonaws.com/")
+
+			if key != "" {
+				err := s3.DeleteFromS3(key)
+				if err != nil {
+					return response, err
+				}
+			}
+		}
+	}
+	affected, err := s.blogRepo.DeleteBlog(ctx, blogObjectID, authorObjectID)
+	if err != nil {
+		return response, err
+	}
+
+	response.Affected = affected
+
+	return response, err
 }

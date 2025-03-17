@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"net/url"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -30,6 +31,8 @@ func DeleteFromS3(key string) error {
 		return err
 	}
 
+	encodedKey := url.PathEscape(key)
+
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return err
@@ -41,7 +44,7 @@ func DeleteFromS3(key string) error {
 
 	if _, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
 		Bucket: &bucket,
-		Key:    &key,
+		Key:    &encodedKey,
 	}); err != nil {
 		return err
 	}

@@ -18,6 +18,7 @@ type BlogRepository interface {
 	GetBlogIndex(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
 	GetBlogBySlug(ctx context.Context, slug string) (*Blog, error)
 	GetBlogById(ctx context.Context, id bson.ObjectID) (*Blog, error)
+	GetBlogByIdAndAuthor(ctx context.Context, id, author bson.ObjectID) (*Blog, error)
 	GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetRandomBlog(ctx context.Context) ([]*Blog, error)
@@ -30,6 +31,7 @@ type BlogRepository interface {
 	ClearBlogFields(ctx context.Context, blogInput, additionalFilters bson.M) (int, error)
 	ValidateSlug(ctx context.Context, slug string) (bool, error)
 	CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error)
+	DeleteBlog(ctx context.Context, id, author bson.ObjectID) (int, error)
 }
 
 type MongoBlogRepository struct {
@@ -86,12 +88,27 @@ func (r *MongoBlogRepository) GetBlogIndex(ctx context.Context, q *BlogQuery) ([
 func (r *MongoBlogRepository) GetBlogById(ctx context.Context, id bson.ObjectID) (*Blog, error) {
 	var blog *Blog
 
-	opts := bson.M{"_id": id}
+	filter := bson.M{"_id": id}
 
-	if err := r.collection.FindOne(ctx, opts).Decode(&blog); err != nil {
+	if err := r.collection.FindOne(ctx, filter).Decode(&blog); err != nil {
 		if err != mongo.ErrNoDocuments {
 			return blog, err
 		}
+	}
+
+	return blog, nil
+}
+
+func (r *MongoBlogRepository) GetBlogByIdAndAuthor(ctx context.Context, id, author bson.ObjectID) (*Blog, error) {
+	var blog *Blog
+
+	filter := bson.M{
+		"_id":    id,
+		"author": author,
+	}
+
+	if err := r.collection.FindOne(ctx, filter).Decode(&blog); err != nil {
+		return blog, err
 	}
 
 	return blog, nil
@@ -562,4 +579,20 @@ func (r *MongoBlogRepository) ClearBlogFields(ctx context.Context, blogInput, ad
 	affected = int(result.MatchedCount)
 
 	return affected, nil
+}
+
+func (r *MongoBlogRepository) DeleteBlog(ctx context.Context, id, author bson.ObjectID) (int, error) {
+	affected := 0
+
+	filter := bson.M{
+		"_id":    id,
+		"author": author,
+	}
+
+	result, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return affected, err
+	}
+
+	return int(result.DeletedCount), nil
 }

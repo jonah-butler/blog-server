@@ -40,7 +40,7 @@ func WriteJSONErr(w http.ResponseWriter, status int, err error) {
 	}
 }
 
-func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
+func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 

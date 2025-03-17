@@ -42,13 +42,12 @@ func generateJWTExp(days int) int64 {
 }
 
 func ConvertToUser(user *UserWithPassword) *User {
-	userWithoutPassword := &User{
+	return &User{
 		Username:     user.Username,
 		ProfileImage: user.ProfileImage,
 		ID:           user.ID,
+		Email:        user.Email,
 	}
-
-	return userWithoutPassword
 }
 
 func ConvertToUserResponse(user *User, token string) UserResponse {

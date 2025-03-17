@@ -339,3 +339,21 @@ func (h *BlogHandler) handleImageDelete(w http.ResponseWriter, req *http.Request
 
 	u.WriteJSON(w, http.StatusOK, response)
 }
+
+func (h *BlogHandler) handleDeleteBlog(w http.ResponseWriter, req *http.Request) {
+	blogID := req.PathValue("id")
+	if blogID == "" {
+		error := fmt.Errorf("blog id can not be empty")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.blogService.DeleteBlog(req.Context(), blogID)
+	if err != nil {
+		error := fmt.Errorf("error deleting blog: %s", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+}

@@ -82,7 +82,11 @@ func main() {
 	emailService := emailService.NewEmailService()
 	passwordResetService := passwordResetService.NewPasswordResetService(passwordResetRepo)
 	blogService := blogService.NewBlogService(blogRepo)
-	userService := userService.NewUserService(userRepo, *passwordResetService, *emailService)
+	userService := userService.NewUserService(
+		userRepo,
+		*passwordResetService,
+		*emailService,
+	)
 
 	// initialize handlers
 	blogHandler := blogHandler.NewBlogHandler(blogService)

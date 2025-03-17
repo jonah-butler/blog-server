@@ -22,11 +22,13 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	// lookup blog by slug
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
+	// delete blog by id
+	server.HandleFunc("DELETE "+prefix+"/{id}", middlewares.BearerAuthMiddleware(h.handleDeleteBlog))
 	// update blog rating
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
 	// update blog
 	server.HandleFunc("POST "+prefix+"/{id}/edit", middlewares.BearerAuthMiddleware(h.handleUpdatetBlog))
-	// update blog
+	// delete blog featured image
 	server.HandleFunc("DELETE "+prefix+"/{id}/delete-image", middlewares.BearerAuthMiddleware(h.handleImageDelete))
 
 	//
