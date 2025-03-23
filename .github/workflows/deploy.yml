@@ -1,0 +1,33 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DO_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy files to Droplet
+        run: |
+          rsync -avz --exclude '.git' --exclude '.github' -e "ssh -i ~/.ssh/id_rsa" ./ ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/root/jonahbutlerdev-api/
+
+      - name: Build and Run Docker container
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
+            cd ~/go-api
+            docker build -t jonahbutlerdev-api .
+            docker stop jonahbutlerdev-api || true && docker rm jonahbutlerdev-api || true
+            docker run -d -p 80:8080 --name jonahbutlerdev-api jonahbutlerdev-api
+          EOF
