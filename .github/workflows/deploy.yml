@@ -21,7 +21,7 @@ jobs:
 
       - name: Copy files to Droplet
         run: |
-          rsync -avz --exclude '.git' --exclude '.github' -e "ssh -i ~/.ssh/id_rsa" ./ ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/root/jonahbutlerdev-api/
+          rsync -avz --exclude '.git' --exclude '.github' -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./ ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/root/jonahbutlerdev-api/
 
       - name: Build and Run Docker container
         run: |
