@@ -26,7 +26,7 @@ jobs:
       - name: Build and Run Docker container
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
-            cd ~/go-api
+            cd ~/jonahbutlerdev-api
             docker build -t jonahbutlerdev-api .
             docker stop jonahbutlerdev-api || true && docker rm jonahbutlerdev-api || true
             docker run -d -p 80:8080 --name jonahbutlerdev-api jonahbutlerdev-api
