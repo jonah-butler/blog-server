@@ -1,5 +1,5 @@
 # ---- Step 1: Build Stage ----
-  FROM golang:1.22.5-alpine AS builder
+  FROM golang:1.24-alpine AS builder
 
   # Set environment variables for Go optimization
   ENV CGO_ENABLED=0 \
