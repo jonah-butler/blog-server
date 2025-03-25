@@ -12,7 +12,7 @@ import (
 
 	"blog-api/db"
 	blogHandler "blog-api/handlers/blog"
-	"blog-api/middlewares"
+	middlewares "blog-api/middlewares"
 	blogRepo "blog-api/repositories/blog"
 	blogService "blog-api/services/blog"
 
