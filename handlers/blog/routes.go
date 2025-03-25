@@ -1,7 +1,7 @@
 package blog
 
 import (
-	"blog-api/middlewares"
+	authmiddleware "blog-api/middlewares/auth"
 	"net/http"
 )
 
@@ -13,23 +13,23 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	// get latest blogs
 	server.HandleFunc("GET "+prefix+"/", h.handleBlogIndex)
 	// new blog
-	server.HandleFunc("POST "+prefix+"/", middlewares.BearerAuthMiddleware(h.handleNewBlog))
+	server.HandleFunc("POST "+prefix+"/", authmiddleware.BearerAuthMiddleware(h.handleNewBlog))
 	// get random blog
 	server.HandleFunc("GET "+prefix+"/random", h.handleRandomBlog)
 	// checks if the provided slug value is available
-	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", middlewares.BearerAuthMiddleware(h.handleSlugValidation))
+	server.HandleFunc("GET "+prefix+"/validate-slug/{slug}", authmiddleware.BearerAuthMiddleware(h.handleSlugValidation))
 	// search blogs
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	// lookup blog by slug
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
 	// delete blog by id
-	server.HandleFunc("DELETE "+prefix+"/{id}", middlewares.BearerAuthMiddleware(h.handleDeleteBlog))
+	server.HandleFunc("DELETE "+prefix+"/{id}", authmiddleware.BearerAuthMiddleware(h.handleDeleteBlog))
 	// update blog rating
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
 	// update blog
-	server.HandleFunc("POST "+prefix+"/{id}/edit", middlewares.BearerAuthMiddleware(h.handleUpdatetBlog))
+	server.HandleFunc("POST "+prefix+"/{id}/edit", authmiddleware.BearerAuthMiddleware(h.handleUpdatetBlog))
 	// delete blog featured image
-	server.HandleFunc("DELETE "+prefix+"/{id}/delete-image", middlewares.BearerAuthMiddleware(h.handleImageDelete))
+	server.HandleFunc("DELETE "+prefix+"/{id}/delete-image", authmiddleware.BearerAuthMiddleware(h.handleImageDelete))
 
 	//
 	// BLOG CATEGORIES
@@ -43,5 +43,5 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	//
 
 	// get user drafts
-	server.HandleFunc("GET "+prefix+"/drafts/{userID}", middlewares.BearerAuthMiddleware(h.handleDrafts))
+	server.HandleFunc("GET "+prefix+"/drafts/{userID}", authmiddleware.BearerAuthMiddleware(h.handleDrafts))
 }

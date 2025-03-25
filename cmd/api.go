@@ -12,7 +12,7 @@ import (
 
 	"blog-api/db"
 	blogHandler "blog-api/handlers/blog"
-	middlewares "blog-api/middlewares"
+	loggingmiddleware "blog-api/middlewares/logging"
 	blogRepo "blog-api/repositories/blog"
 	blogService "blog-api/services/blog"
 
@@ -99,7 +99,7 @@ func main() {
 	blogHandler.RegisterBlogRoutes("/blog", mux)
 	userHandler.RegisterUserRoutes("/user", mux)
 
-	loggedMux := middlewares.LoggingMiddleware(mux)
+	loggedMux := loggingmiddleware.LogRequest(mux)
 
 	s := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
