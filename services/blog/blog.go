@@ -53,9 +53,9 @@ func (s *BlogService) GetBlogBySlug(ctx context.Context, slug string) (r.SingleB
 		return response, err
 	}
 
-	response.Post1 = blog
-	response.NextPost = nextBlog
-	response.PreviousPost = previousBlog
+	response.Blog = blog
+	response.Next = nextBlog
+	response.Previous = previousBlog
 
 	s.blogRepo.IncrementViewCount(blog.Slug)
 
@@ -82,9 +82,9 @@ func (s *BlogService) GetRandomBlog(ctx context.Context) (r.SingleBlogResponse, 
 		return response, err
 	}
 
-	response.Post1 = blog
-	response.NextPost = nextBlog
-	response.PreviousPost = previousBlog
+	response.Blog = blog
+	response.Next = nextBlog
+	response.Previous = previousBlog
 
 	s.blogRepo.IncrementViewCount(blog.Slug)
 

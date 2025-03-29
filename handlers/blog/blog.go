@@ -64,7 +64,7 @@ func (h *BlogHandler) handleBlogBySlug(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	if blogs.Post1 == nil {
+	if blogs.Blog == nil {
 		error := fmt.Errorf("failed to lookup blog by slug: %s", slug)
 		u.WriteJSONErr(w, http.StatusNotFound, error)
 		return

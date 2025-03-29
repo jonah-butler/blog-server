@@ -18,9 +18,9 @@ type BlogIndexResponse struct {
 
 // update this since it's not atually a SingleBlogResponse anymore
 type SingleBlogResponse struct {
-	Post1        *Blog `json:"post1"`
-	PreviousPost *Blog `json:"previousPost"`
-	NextPost     *Blog `json:"nextPost"`
+	Blog     *Blog `json:"blog"`
+	Previous *Blog `json:"previous"`
+	Next     *Blog `json:"next"`
 }
 
 type BlogUpdateResponse struct {
