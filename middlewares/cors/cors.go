@@ -1,18 +1,26 @@
 package corsmiddleware
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 func ValidateCors(next http.Handler) http.Handler {
-	allowedOrigin := "https://jonahbutler.dev"
+	allowedOrigins := map[string]struct{}{
+		"https://jonahbutler.dev": {},
+		"http://localhost:8080":   {},
+	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		if origin == allowedOrigin {
+		if _, ok := allowedOrigins[origin]; ok {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		} else {
+			log.Printf("Forbidden origin: %s", origin)
 		}
 
 		// Handle preflight requests
@@ -21,7 +29,6 @@ func ValidateCors(next http.Handler) http.Handler {
 			return
 		}
 
-		// Continue with the original handler
 		next.ServeHTTP(w, r)
 	})
 }
