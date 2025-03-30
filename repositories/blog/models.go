@@ -48,9 +48,9 @@ type Blog struct {
 	Text          string        `bson:"text" json:"text"`
 	Published     bool          `bson:"published" json:"published"`
 	Slug          string        `bson:"slug" json:"slug"`
-	SanitizedHTML string        `bson:"sanitizedHTML" json:"sanitizedHTML"`
-	CreatedAt     time.Time     `bson:"createdAt" json:"createdAt"`
-	UpdatedAt     time.Time     `bson:"updatedAt" json:"updatedAt"`
+	// SanitizedHTML string        `bson:"sanitizedHTML" json:"sanitizedHTML"` not using atm
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
 type BaseBlogInput struct {

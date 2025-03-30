@@ -11,9 +11,9 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	//
 
 	// get latest blogs
-	server.HandleFunc("GET "+prefix+"/", h.handleBlogIndex)
+	server.HandleFunc("GET "+prefix, h.handleBlogIndex)
 	// new blog
-	server.HandleFunc("POST "+prefix+"/", authmiddleware.BearerAuthMiddleware(h.handleNewBlog))
+	server.HandleFunc("POST "+prefix, authmiddleware.BearerAuthMiddleware(h.handleNewBlog))
 	// get random blog
 	server.HandleFunc("GET "+prefix+"/random", h.handleRandomBlog)
 	// checks if the provided slug value is available
@@ -27,7 +27,7 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	// update blog rating
 	server.HandleFunc("POST "+prefix+"/{id}/like", h.handleBlogLike)
 	// update blog
-	server.HandleFunc("POST "+prefix+"/{id}/edit", authmiddleware.BearerAuthMiddleware(h.handleUpdatetBlog))
+	server.HandleFunc("PUT "+prefix+"/{id}/edit", authmiddleware.BearerAuthMiddleware(h.handleUpdatetBlog))
 	// delete blog featured image
 	server.HandleFunc("DELETE "+prefix+"/{id}/delete-image", authmiddleware.BearerAuthMiddleware(h.handleImageDelete))
 
@@ -43,5 +43,8 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	//
 
 	// get user drafts
-	server.HandleFunc("GET "+prefix+"/drafts/{userID}", authmiddleware.BearerAuthMiddleware(h.handleDrafts))
+	server.HandleFunc("GET "+prefix+"/drafts", authmiddleware.BearerAuthMiddleware(h.handleDrafts))
+
+	// get single draft from author
+	server.HandleFunc("GET "+prefix+"/drafts/{slug}", authmiddleware.BearerAuthMiddleware(h.handleDraft))
 }

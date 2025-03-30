@@ -118,6 +118,31 @@ func (s *BlogService) GetDraftsByUser(ctx context.Context, q *r.BlogQuery) (r.Bl
 	return response, nil
 }
 
+func (s *BlogService) GetDraftByUser(ctx context.Context, slug string) (r.SingleBlogResponse, error) {
+	response := r.SingleBlogResponse{}
+
+	blog, err := s.blogRepo.GetDraftByUser(ctx, slug)
+	if err != nil {
+		return response, err
+	}
+
+	nextBlog, err := s.blogRepo.GetNextDraft(ctx, blog.ID)
+	if err != nil {
+		return response, err
+	}
+
+	previousBlog, err := s.blogRepo.GetPreviousDraft(ctx, blog.ID)
+	if err != nil {
+		return response, err
+	}
+
+	response.Blog = blog
+	response.Next = nextBlog
+	response.Previous = previousBlog
+
+	return response, nil
+}
+
 func (s *BlogService) GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *r.BlogQuery) (r.BlogIndexResponse, error) {
 	response := r.BlogIndexResponse{}
 

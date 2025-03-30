@@ -152,6 +152,24 @@ func (h *BlogHandler) handleDrafts(w http.ResponseWriter, req *http.Request) {
 	u.WriteJSON(w, http.StatusOK, response)
 }
 
+func (h *BlogHandler) handleDraft(w http.ResponseWriter, req *http.Request) {
+	slug := req.PathValue("slug")
+	if slug == "" {
+		error := fmt.Errorf("missing required path value: slug")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.blogService.GetDraftByUser(req.Context(), slug)
+	if err != nil {
+		error := fmt.Errorf("failed to get drafts by user: %s", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+}
+
 /*
 /blog/search/{query}
 

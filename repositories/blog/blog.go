@@ -21,6 +21,8 @@ type BlogRepository interface {
 	GetBlogByIdAndAuthor(ctx context.Context, id, author bson.ObjectID) (*Blog, error)
 	GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
+	GetPreviousDraft(ctx context.Context, id bson.ObjectID) (*Blog, error)
+	GetNextDraft(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetRandomBlog(ctx context.Context) ([]*Blog, error)
 	GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]Blog, bool, error)
 	GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error)
@@ -32,6 +34,7 @@ type BlogRepository interface {
 	ValidateSlug(ctx context.Context, slug string) (bool, error)
 	CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error)
 	DeleteBlog(ctx context.Context, id, author bson.ObjectID) (int, error)
+	GetDraftByUser(ctx context.Context, slug string) (*Blog, error)
 }
 
 type MongoBlogRepository struct {
@@ -349,6 +352,97 @@ func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery)
 	hasMore := q.Offset+limit < int(totalDocuments)
 
 	return blogs, hasMore, nil
+}
+
+func (r *MongoBlogRepository) GetDraftByUser(ctx context.Context, slug string) (*Blog, error) {
+	var blog *Blog
+
+	userID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return blog, errors.New("failed to access context values")
+	}
+
+	userObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return blog, err
+	}
+
+	filter := bson.M{
+		"published": false,
+		"author":    userObjectID,
+		"slug":      slug,
+	}
+
+	err = r.collection.FindOne(ctx, filter).Decode(&blog)
+	if err != nil {
+		return blog, err
+	}
+
+	return blog, nil
+}
+
+func (r *MongoBlogRepository) GetNextDraft(ctx context.Context, id bson.ObjectID) (*Blog, error) {
+	var blog *Blog
+
+	userID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return blog, errors.New("failed to access context values")
+	}
+
+	userObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return blog, err
+	}
+
+	nextFilter := bson.M{
+		"$and": []bson.M{
+			{"_id": bson.M{"$gt": id}},
+			{"published": false},
+			{"author": userObjectID},
+		},
+	}
+
+	opts := options.FindOne().SetSort(bson.M{"_id": 1})
+
+	if err := r.collection.FindOne(ctx, nextFilter, opts).Decode(&blog); err != nil {
+		if err != mongo.ErrNoDocuments {
+			return blog, err
+		}
+	}
+
+	return blog, nil
+}
+
+func (r *MongoBlogRepository) GetPreviousDraft(ctx context.Context, id bson.ObjectID) (*Blog, error) {
+	var blog *Blog
+
+	userID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return blog, errors.New("failed to access context values")
+	}
+
+	userObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return blog, err
+	}
+
+	nextFilter := bson.M{
+		"$and": []bson.M{
+			{"_id": bson.M{"$lt": id}},
+			{"published": false},
+			{"author": userObjectID},
+		},
+	}
+
+	opts := options.FindOne().SetSort(bson.M{"_id": -1})
+
+	if err := r.collection.FindOne(ctx, nextFilter, opts).Decode(&blog); err != nil {
+		if err != mongo.ErrNoDocuments {
+			return blog, err
+		}
+	}
+
+	return blog, nil
 }
 
 func (r *MongoBlogRepository) GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error) {
