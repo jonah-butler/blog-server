@@ -12,6 +12,7 @@ import (
 
 	"blog-api/db"
 	blogHandler "blog-api/handlers/blog"
+	corsmiddleware "blog-api/middlewares/cors"
 	loggingmiddleware "blog-api/middlewares/logging"
 	blogRepo "blog-api/repositories/blog"
 	blogService "blog-api/services/blog"
@@ -100,10 +101,11 @@ func main() {
 	userHandler.RegisterUserRoutes("/user", mux)
 
 	loggedMux := loggingmiddleware.LogRequest(mux)
+	corsMux := corsmiddleware.ValidateCors(loggedMux)
 
 	s := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
-		Handler:      loggedMux,
+		Handler:      corsMux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
