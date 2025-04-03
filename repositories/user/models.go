@@ -44,7 +44,7 @@ type UserWithPassword struct {
 
 // User Response
 type UserResponse struct {
-	User
+	User  User   `json:"user"`
 	Token string `json:"token"`
 }
 
