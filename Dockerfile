@@ -33,7 +33,7 @@
   COPY --from=builder /blog_api /app/api
 
   # COPY .env file from the host machine into the final container
-COPY .env /app/.env
+  COPY .env /app/.env
   
   # Grant execution permission
   RUN chmod +x /app/api

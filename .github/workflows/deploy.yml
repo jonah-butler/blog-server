@@ -27,7 +27,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
             cd ~/jonahbutlerdev-api
-            docker build -t jonahbutlerdev-api .
+            docker build --progress=plain -t jonahbutlerdev-api .
             docker stop jonahbutlerdev-api || true && docker rm jonahbutlerdev-api || true
             docker run -d -p 8081:8080 --name jonahbutlerdev-api jonahbutlerdev-api
           EOF
