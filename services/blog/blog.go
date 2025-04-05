@@ -298,7 +298,17 @@ func (s *BlogService) DeleteImage(ctx context.Context, blogID string) (*r.Generi
 		return response, err
 	}
 
-	blog, err := s.blogRepo.GetBlogById(ctx, blogObjectID)
+	userID, ok := ctx.Value(ck.UserIDKey).(string)
+	if !ok {
+		return response, fmt.Errorf("failed to access context values")
+	}
+
+	userObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return response, err
+	}
+
+	blog, err := s.blogRepo.GetBlogByIdAndAuthor(ctx, blogObjectID, userObjectID)
 	if err != nil {
 		return response, err
 	}

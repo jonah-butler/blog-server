@@ -29,7 +29,7 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	// update blog
 	server.HandleFunc("PUT "+prefix+"/{id}/edit", authmiddleware.BearerAuthMiddleware(h.handleUpdatetBlog))
 	// delete blog featured image
-	server.HandleFunc("DELETE "+prefix+"/{id}/delete-image", authmiddleware.BearerAuthMiddleware(h.handleImageDelete))
+	server.HandleFunc("DELETE "+prefix+"/featured-image/{id}", authmiddleware.BearerAuthMiddleware(h.handleImageDelete))
 
 	//
 	// BLOG CATEGORIES
