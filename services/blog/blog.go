@@ -175,7 +175,7 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.UpdateBlogInput) 
 
 	// if a file was included process first
 	fmt.Println("attempt to upload images")
-	fmt.Println("image size: ", input.Image.Size)
+	fmt.Println("image size: ", input.Image)
 	if input.Image != nil && input.Image.Size > 0 {
 		authorID, ok := ctx.Value(ck.UserIDKey).(string)
 		if !ok {
