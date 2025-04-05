@@ -22,7 +22,7 @@ jobs:
       - name: Copy files to Droplet
         run: |
           rsync -avz --exclude '.git' --exclude '.github' \
-            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" -o ServerAliveInterval=60 -o ServerAliveCountMax=5" \
+            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=5" \
             ./ ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/root/jonahbutlerdev-api/
 
       - name: Build and Run Docker container
