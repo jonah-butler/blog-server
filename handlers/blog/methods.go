@@ -216,6 +216,10 @@ func ParseMultiPartForm[T any](reader *multipart.Reader, input *T) error {
 				return err
 			}
 
+			if size == 0 {
+				continue
+			}
+
 			fileHeader := &multipart.FileHeader{
 				Filename: part.FileName(),
 				Header:   part.Header,

@@ -174,7 +174,7 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.UpdateBlogInput) 
 	var response r.BlogUpdateResponse
 
 	// if a file was included process first
-	if input.Image != nil {
+	if input.Image != nil && input.Image.Size > 0 {
 		authorID, ok := ctx.Value(ck.UserIDKey).(string)
 		if !ok {
 			return response, fmt.Errorf("user id missing in context")
