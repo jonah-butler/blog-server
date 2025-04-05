@@ -29,7 +29,7 @@ func getContentType(filename string) *string {
 	return &contentType
 }
 
-func getS3FileURL(bucket, key, region string) string {
+func getS3FileURL(bucket, region, key string) string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key)
 }
 
