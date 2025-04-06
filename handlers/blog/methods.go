@@ -216,7 +216,7 @@ func ParseMultiPartForm[T any](reader *multipart.Reader, input *T) error {
 				return err
 			}
 
-			if size == 0 {
+			if size == 0 || part.FileName() == "" {
 				continue
 			}
 

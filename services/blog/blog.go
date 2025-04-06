@@ -174,8 +174,6 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.UpdateBlogInput) 
 	var response r.BlogUpdateResponse
 
 	// if a file was included process first
-	fmt.Println("attempt to upload images")
-	fmt.Println("image size: ", input.Image)
 	if input.Image != nil && input.Image.Size > 0 {
 		authorID, ok := ctx.Value(ck.UserIDKey).(string)
 		if !ok {
@@ -195,6 +193,8 @@ func (s *BlogService) UpdateBlog(ctx context.Context, input *r.UpdateBlogInput) 
 	// sanitize input text html
 	if input.Text != "" {
 		p := bluemonday.UGCPolicy()
+
+		p.AllowAttrs("class", "data-language", "spellcheck").OnElements("pre", "span", "code")
 
 		sanitized := p.Sanitize(input.Text)
 
