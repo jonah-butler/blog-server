@@ -277,6 +277,8 @@ func (s *BlogService) CreateBlog(ctx context.Context, input *r.CreateBlogInput) 
 	if input.Text != "" {
 		p := bluemonday.UGCPolicy()
 
+		p.AllowAttrs("class", "data-language", "spellcheck").OnElements("pre", "span", "code")
+
 		sanitized := p.Sanitize(input.Text)
 
 		input.Text = sanitized
