@@ -17,6 +17,7 @@ import (
 	"mime/multipart"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -70,7 +71,9 @@ func UploadToS3(fileHeader *multipart.FileHeader, fileData []byte, userId string
 	contentType := getContentType(fileHeader.Filename)
 
 	bucketName := os.Getenv("AWS_BUCKET")
-	key := "featured_images/users/" + userId + "/" + fileHeader.Filename
+
+	escapedFileName := strings.ReplaceAll(fileHeader.Filename, " ", "-")
+	key := "featured_images/users/" + userId + "/" + escapedFileName
 
 	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:        &bucketName,
