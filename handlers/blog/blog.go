@@ -42,6 +42,29 @@ func (h *BlogHandler) handleBlogIndex(w http.ResponseWriter, req *http.Request) 
 	u.WriteJSON(w, http.StatusOK, blogs)
 }
 
+func (h *BlogHandler) handleBlogsByUser(w http.ResponseWriter, req *http.Request) {
+	userID := req.PathValue("userID")
+	if userID == "" {
+		error := fmt.Errorf("userID path value can not be empty")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	blogQuery := new(r.BlogQuery)
+	queryValues := req.URL.Query()
+
+	u.ParseBlogQueryParams(blogQuery, queryValues)
+
+	blogs, err := h.blogService.GetBlogsByUser(req.Context(), blogQuery, userID)
+	if err != nil {
+		message := fmt.Errorf("failed to get blogs at offset %d: %v", blogQuery.Offset, err)
+		u.WriteJSONErr(w, http.StatusBadRequest, message)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, blogs)
+}
+
 /*
 /blog/{slug}
 

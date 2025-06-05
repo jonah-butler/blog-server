@@ -16,7 +16,7 @@ func ComparePasswords(hashedPassword, password string) bool {
 	return err == nil
 }
 
-func GenerateJWT(user *User) (string, error) {
+func GenerateJWT(user *UserWithID) (string, error) {
 	claim := &JWTClaims{
 		StandardClaims: jwt.StandardClaims{
 			Issuer:    user.ID.String(),
@@ -41,16 +41,18 @@ func generateJWTExp(days int) int64 {
 	return time.Now().Add((time.Hour * 24) * time.Duration(days)).Unix()
 }
 
-func ConvertToUser(user *UserWithPassword) *User {
-	return &User{
-		Username:     user.Username,
-		ProfileImage: user.ProfileImage,
-		ID:           user.ID,
-		Email:        user.Email,
+func ConvertToUser(user *UserWithPassword) *UserWithID {
+	return &UserWithID{
+		User: User{
+			Email:        user.Email,
+			Username:     user.Username,
+			ProfileImage: user.ProfileImage,
+		},
+		ID: user.ID,
 	}
 }
 
-func ConvertToUserResponse(user *User, token string) UserResponse {
+func ConvertToUserResponse(user *UserWithID, token string) UserResponse {
 	userResponse := UserResponse{
 		User:  *user,
 		Token: token,

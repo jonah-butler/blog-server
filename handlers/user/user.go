@@ -17,7 +17,23 @@ func NewUserHandler(service *s.UserService) *UserHandler {
 	return &UserHandler{userService: service}
 }
 
-func (h *UserHandler) getUser(w http.ResponseWriter, req *http.Request) {}
+func (h *UserHandler) getUserPublic(w http.ResponseWriter, req *http.Request) {
+	username := req.PathValue("username")
+	if username == "" {
+		error := fmt.Errorf("username path value can not be empty")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	response, err := h.userService.GetUserPublic(req.Context(), username)
+	if err != nil {
+		error := fmt.Errorf("failed to get user data: %s", err)
+		u.WriteJSONErr(w, http.StatusNotFound, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, response)
+}
 
 func (h *UserHandler) registerUser(w http.ResponseWriter, req *http.Request) {}
 

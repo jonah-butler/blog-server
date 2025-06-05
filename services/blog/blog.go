@@ -31,6 +31,23 @@ func (s *BlogService) GetBlogIndex(ctx context.Context, q *r.BlogQuery) (r.BlogI
 	return reponse, err
 }
 
+func (s *BlogService) GetBlogsByUser(ctx context.Context, q *r.BlogQuery, userID string) (r.BlogIndexResponse, error) {
+	var response r.BlogIndexResponse
+
+	userObjectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return response, err
+	}
+	blogs, hasMore, err := s.blogRepo.GetBlogsByUser(ctx, q, userObjectID)
+
+	reponse := r.BlogIndexResponse{
+		Blogs:   blogs,
+		HasMore: hasMore,
+	}
+
+	return reponse, err
+}
+
 func (s *BlogService) GetBlogBySlug(ctx context.Context, slug string) (r.SingleBlogResponse, error) {
 	var response r.SingleBlogResponse
 
@@ -65,12 +82,10 @@ func (s *BlogService) GetBlogBySlug(ctx context.Context, slug string) (r.SingleB
 func (s *BlogService) GetRandomBlog(ctx context.Context) (r.SingleBlogResponse, error) {
 	var response r.SingleBlogResponse
 
-	blogs, err := s.blogRepo.GetRandomBlog(ctx)
-	if err != nil || blogs[0] == nil {
+	blog, err := s.blogRepo.GetRandomBlog(ctx)
+	if err != nil {
 		return response, err
 	}
-
-	blog := blogs[0]
 
 	previousBlog, err := s.blogRepo.GetPreviousBlog(ctx, blog.ID)
 	if err != nil {

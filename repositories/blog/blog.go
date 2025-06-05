@@ -15,18 +15,18 @@ import (
 )
 
 type BlogRepository interface {
-	GetBlogIndex(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
-	GetBlogBySlug(ctx context.Context, slug string) (*Blog, error)
+	GetBlogIndex(ctx context.Context, q *BlogQuery) ([]BlogMinimum, bool, error)
+	GetBlogBySlug(ctx context.Context, slug string) (*BlogWithAuthor, error)
 	GetBlogById(ctx context.Context, id bson.ObjectID) (*Blog, error)
 	GetBlogByIdAndAuthor(ctx context.Context, id, author bson.ObjectID) (*Blog, error)
-	GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
-	GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error)
-	GetPreviousDraft(ctx context.Context, id bson.ObjectID) (*Blog, error)
-	GetNextDraft(ctx context.Context, id bson.ObjectID) (*Blog, error)
-	GetRandomBlog(ctx context.Context) ([]*Blog, error)
-	GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]Blog, bool, error)
-	GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error)
-	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error)
+	GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error)
+	GetNextBlog(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error)
+	GetPreviousDraft(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error)
+	GetNextDraft(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error)
+	GetRandomBlog(ctx context.Context) (*BlogWithAuthor, error)
+	GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]BlogMinimum, bool, error)
+	GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]BlogMinimum, bool, error)
+	GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]BlogMinimum, bool, error)
 	LikeBlog(ctx context.Context, id string) (*Blog, error)
 	IncrementViewCount(slug string)
 	UpdateBlog(ctx context.Context, input *UpdateBlogInput) (*Blog, error)
@@ -34,7 +34,8 @@ type BlogRepository interface {
 	ValidateSlug(ctx context.Context, slug string) (bool, error)
 	CreateBlog(ctx context.Context, input *CreateBlogInput) (*Blog, error)
 	DeleteBlog(ctx context.Context, id, author bson.ObjectID) (int, error)
-	GetDraftByUser(ctx context.Context, slug string) (*Blog, error)
+	GetDraftByUser(ctx context.Context, slug string) (*BlogWithAuthor, error)
+	GetBlogsByUser(ctx context.Context, q *BlogQuery, userID bson.ObjectID) ([]BlogMinimum, bool, error)
 }
 
 type MongoBlogRepository struct {
@@ -56,11 +57,43 @@ func NewBlogRepository(db *mongo.Database) BlogRepository {
 	along with a bool indicating if there are any additional blogs available after the
 	provided offset.
 */
-func (r *MongoBlogRepository) GetBlogIndex(ctx context.Context, q *BlogQuery) ([]Blog, bool, error) {
+func (r *MongoBlogRepository) GetBlogIndex(ctx context.Context, q *BlogQuery) ([]BlogMinimum, bool, error) {
 	limit := 10
-	var blogs []Blog
+	var blogs []BlogMinimum
 
 	filter := bson.M{"published": true}
+
+	opts := options.Find().
+		SetSort(bson.M{"createdAt": -1}).
+		SetLimit(int64(limit)).
+		SetSkip(int64(q.Offset))
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return blogs, false, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &blogs); err != nil {
+		return blogs, false, err
+	}
+
+	totalDocuments, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return blogs, false, err
+	}
+
+	hasMore := q.Offset+limit < int(totalDocuments)
+
+	return blogs, hasMore, nil
+}
+
+func (r *MongoBlogRepository) GetBlogsByUser(ctx context.Context, q *BlogQuery, userID bson.ObjectID) ([]BlogMinimum, bool, error) {
+	limit := 10
+	var blogs []BlogMinimum
+
+	filter := bson.M{"published": true, "author": userID}
 
 	opts := options.Find().
 		SetSort(bson.M{"createdAt": -1}).
@@ -125,8 +158,8 @@ func (r *MongoBlogRepository) GetBlogByIdAndAuthor(ctx context.Context, id, auth
 	Takes a document's ID and looks up the document just before it. Returns nil if the provided ID
 	of the document is the first in the collection.
 */
-func (r *MongoBlogRepository) GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*Blog, error) {
-	var previousBlog *Blog
+func (r *MongoBlogRepository) GetPreviousBlog(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error) {
+	var previousBlog *BlogMinimum
 
 	previousFilter := bson.M{
 		"$and": []bson.M{
@@ -154,8 +187,8 @@ func (r *MongoBlogRepository) GetPreviousBlog(ctx context.Context, id bson.Objec
 	Takes a document's ID and looks up the document next to it. Returns nil if the provided ID
 	of the document is the latest in the collection.
 */
-func (r *MongoBlogRepository) GetNextBlog(ctx context.Context, id bson.ObjectID) (*Blog, error) {
-	var nextBlog *Blog
+func (r *MongoBlogRepository) GetNextBlog(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error) {
+	var nextBlog *BlogMinimum
 
 	nextFilter := bson.M{
 		"$and": []bson.M{
@@ -175,6 +208,27 @@ func (r *MongoBlogRepository) GetNextBlog(ctx context.Context, id bson.ObjectID)
 	return nextBlog, nil
 }
 
+func (r *MongoBlogRepository) getBlogWithPipeline(ctx context.Context, pipeline mongo.Pipeline) (*BlogWithAuthor, error) {
+	var blog *BlogWithAuthor
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return blog, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if !cursor.Next(ctx) {
+		return blog, mongo.ErrNoDocuments
+	}
+
+	if err := cursor.Decode(&blog); err != nil {
+		return blog, err
+	}
+
+	return blog, nil
+}
+
 /*
 *
 
@@ -182,14 +236,38 @@ func (r *MongoBlogRepository) GetNextBlog(ctx context.Context, id bson.ObjectID)
 
 	Looks up a blog by the provided slug
 */
-func (r *MongoBlogRepository) GetBlogBySlug(ctx context.Context, slug string) (*Blog, error) {
-	var blog *Blog
+func (r *MongoBlogRepository) GetBlogBySlug(ctx context.Context, slug string) (*BlogWithAuthor, error) {
+	var blog *BlogWithAuthor
 
-	filter := bson.M{"published": true, "slug": slug}
+	pipeline := mongo.Pipeline{
+		{
+			{
+				Key: "$match", Value: bson.M{
+					"slug":      slug,
+					"published": true,
+				},
+			},
+		},
 
-	err := r.collection.FindOne(ctx, filter).Decode(&blog)
+		{
+			{
+				Key: "$lookup", Value: bson.M{
+					"from":         "users",
+					"localField":   "author",
+					"foreignField": "_id",
+					"as":           "author",
+				},
+			},
+		},
+
+		{
+			{Key: "$unwind", Value: "$author"},
+		},
+	}
+
+	blog, err := r.getBlogWithPipeline(ctx, pipeline)
 	if err != nil {
-		return blog, nil
+		return blog, err
 	}
 
 	return blog, nil
@@ -203,25 +281,51 @@ func (r *MongoBlogRepository) GetBlogBySlug(ctx context.Context, slug string) (*
 	Uses Mongo's aggregate method with the sample key to retrieve
 	a random document from the blogposts collection.
 */
-func (r *MongoBlogRepository) GetRandomBlog(ctx context.Context) ([]*Blog, error) {
-	var blogs []*Blog
+func (r *MongoBlogRepository) GetRandomBlog(ctx context.Context) (*BlogWithAuthor, error) {
+	var blog *BlogWithAuthor
 
 	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{"published": true}}},
-		{{Key: "$sample", Value: bson.M{"size": 1}}},
+		{
+			{
+				Key:   "$match",
+				Value: bson.M{"published": true},
+			},
+		},
+
+		{
+			{
+				Key: "$sample", Value: bson.M{"size": 1},
+			},
+		},
+
+		{
+			{
+				Key: "$lookup", Value: bson.M{
+					"from":         "users",
+					"localField":   "author",
+					"foreignField": "_id",
+					"as":           "author",
+				},
+			},
+		},
+
+		{
+			{Key: "$unwind", Value: "$author"},
+		},
+
+		{
+			{
+				Key: "$limit", Value: 1,
+			},
+		},
 	}
-	cursor, err := r.collection.Aggregate(ctx, pipeline)
+
+	blog, err := r.getBlogWithPipeline(ctx, pipeline)
 	if err != nil {
-		return blogs, err
+		return blog, err
 	}
 
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &blogs); err != nil {
-		return blogs, err
-	}
-
-	return blogs, nil
+	return blog, nil
 }
 
 /*
@@ -256,9 +360,9 @@ func (r *MongoBlogRepository) IncrementViewCount(slug string) {
 	Returns the found blogs and if the collection contains more
 	after the provided offset.
 */
-func (r *MongoBlogRepository) GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]Blog, bool, error) {
+func (r *MongoBlogRepository) GetBlogsByCategory(ctx context.Context, category string, q *BlogQuery) ([]BlogMinimum, bool, error) {
 	limit := 10
-	var blogs []Blog
+	var blogs []BlogMinimum
 
 	categorySlice := splitAndTrim(category)
 
@@ -303,10 +407,10 @@ func (r *MongoBlogRepository) GetBlogsByCategory(ctx context.Context, category s
 	A request with an invalid token or non-existent
 	userID will not reach this repository method.
 */
-func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]Blog, bool, error) {
+func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery) ([]BlogMinimum, bool, error) {
 	// lots of repeated code - see what i can do about that...
 	limit := 10
-	var blogs []Blog
+	var blogs []BlogMinimum
 
 	// maybe store the userID in request context
 	// as ObjectID without converting via .Hex()
@@ -354,8 +458,8 @@ func (r *MongoBlogRepository) GetDraftsByUser(ctx context.Context, q *BlogQuery)
 	return blogs, hasMore, nil
 }
 
-func (r *MongoBlogRepository) GetDraftByUser(ctx context.Context, slug string) (*Blog, error) {
-	var blog *Blog
+func (r *MongoBlogRepository) GetDraftByUser(ctx context.Context, slug string) (*BlogWithAuthor, error) {
+	var blog *BlogWithAuthor
 
 	userID, ok := ctx.Value(ck.UserIDKey).(string)
 	if !ok {
@@ -367,22 +471,40 @@ func (r *MongoBlogRepository) GetDraftByUser(ctx context.Context, slug string) (
 		return blog, err
 	}
 
-	filter := bson.M{
-		"published": false,
-		"author":    userObjectID,
-		"slug":      slug,
+	pipeline := mongo.Pipeline{
+		{
+			{
+				Key: "$match", Value: bson.M{
+					"slug":      slug,
+					"published": false,
+					"author":    userObjectID,
+				},
+			},
+		},
+
+		{
+			{
+				Key: "$lookup", Value: bson.M{
+					"from":         "users",
+					"localField":   "author",
+					"foreignField": "_id",
+					"as":           "author",
+				},
+			},
+		},
+
+		{
+			{Key: "$unwind", Value: "$author"},
+		},
 	}
 
-	err = r.collection.FindOne(ctx, filter).Decode(&blog)
-	if err != nil {
-		return blog, err
-	}
+	blog, err = r.getBlogWithPipeline(ctx, pipeline)
 
 	return blog, nil
 }
 
-func (r *MongoBlogRepository) GetNextDraft(ctx context.Context, id bson.ObjectID) (*Blog, error) {
-	var blog *Blog
+func (r *MongoBlogRepository) GetNextDraft(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error) {
+	var blog *BlogMinimum
 
 	userID, ok := ctx.Value(ck.UserIDKey).(string)
 	if !ok {
@@ -413,8 +535,8 @@ func (r *MongoBlogRepository) GetNextDraft(ctx context.Context, id bson.ObjectID
 	return blog, nil
 }
 
-func (r *MongoBlogRepository) GetPreviousDraft(ctx context.Context, id bson.ObjectID) (*Blog, error) {
-	var blog *Blog
+func (r *MongoBlogRepository) GetPreviousDraft(ctx context.Context, id bson.ObjectID) (*BlogMinimum, error) {
+	var blog *BlogMinimum
 
 	userID, ok := ctx.Value(ck.UserIDKey).(string)
 	if !ok {
@@ -445,9 +567,9 @@ func (r *MongoBlogRepository) GetPreviousDraft(ctx context.Context, id bson.Obje
 	return blog, nil
 }
 
-func (r *MongoBlogRepository) GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]Blog, bool, error) {
+func (r *MongoBlogRepository) GetBlogsBySearchQuery(ctx context.Context, searchQuery string, q *BlogQuery) ([]BlogMinimum, bool, error) {
 	limit := 10
-	var blogs []Blog
+	var blogs []BlogMinimum
 
 	escapedQuery := fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(searchQuery))
 

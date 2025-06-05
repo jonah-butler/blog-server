@@ -28,7 +28,25 @@ func NewUserService(userRepo r.UserRepository, passwordResetService prs.Password
 	}
 }
 
-func (s *UserService) GetUser(ctx context.Context) error { return nil }
+func (s *UserService) GetUserPublic(ctx context.Context, username string) (r.UserWithID, error) {
+	var getUserResponse r.UserWithID
+
+	payload := r.UserLoginPost{
+		Username: username,
+	}
+
+	userWithPassword, err := s.userRepo.FindUser(ctx, payload)
+	if err != nil {
+		return getUserResponse, err
+	}
+
+	getUserResponse.Email = userWithPassword.Email
+	getUserResponse.ProfileImage = userWithPassword.ProfileImage
+	getUserResponse.Username = userWithPassword.Username
+	getUserResponse.ID = userWithPassword.ID
+
+	return getUserResponse, nil
+}
 
 func (s *UserService) RegisterUser(ctx context.Context) error { return nil }
 

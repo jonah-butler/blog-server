@@ -1,6 +1,7 @@
 package blog
 
 import (
+	ur "blog-api/repositories/user"
 	"mime/multipart"
 	"time"
 
@@ -12,15 +13,15 @@ type BlogQuery struct {
 }
 
 type BlogIndexResponse struct {
-	Blogs   []Blog `json:"blogs"`
-	HasMore bool   `json:"hasMore"`
+	Blogs   []BlogMinimum `json:"blogs"`
+	HasMore bool          `json:"hasMore"`
 }
 
 // update this since it's not atually a SingleBlogResponse anymore
 type SingleBlogResponse struct {
-	Blog     *Blog `json:"blog"`
-	Previous *Blog `json:"previous"`
-	Next     *Blog `json:"next"`
+	Blog     *BlogWithAuthor `json:"blog"`
+	Previous *BlogMinimum    `json:"previous"`
+	Next     *BlogMinimum    `json:"next"`
 }
 
 type BlogUpdateResponse struct {
@@ -51,6 +52,34 @@ type Blog struct {
 	// SanitizedHTML string        `bson:"sanitizedHTML" json:"sanitizedHTML"` not using atm
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+type BlogWithAuthor struct {
+	Categories    []string      `bson:"categories" json:"categories"`
+	Rating        int           `bson:"rating" json:"rating"`
+	Views         int           `bson:"views" json:"views"`
+	ID            bson.ObjectID `bson:"_id,omitempty" json:"_id"`
+	Author        ur.User       `bson:"author" json:"author"`
+	Title         string        `bson:"title" json:"title"`
+	ImageLocation string        `bson:"featuredImageLocation" json:"featuredImageLocation"`
+	ImageTag      string        `bson:"featuredImageTag" json:"featuredImageTag"`
+	ImageKey      string        `bson:"featuredImageKey" json:"featuredImageKey"`
+	Text          string        `bson:"text" json:"text"`
+	Published     bool          `bson:"published" json:"published"`
+	Slug          string        `bson:"slug" json:"slug"`
+	// SanitizedHTML string        `bson:"sanitizedHTML" json:"sanitizedHTML"` not using atm
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+type BlogMinimum struct {
+	ID            bson.ObjectID `bson:"_id,omitempty" json:"_id"`
+	Views         int           `bson:"views" json:"views"`
+	Title         string        `bson:"title" json:"title"`
+	ImageLocation string        `bson:"featuredImageLocation" json:"featuredImageLocation"`
+	Slug          string        `bson:"slug" json:"slug"`
+	Rating        int           `bson:"rating" json:"rating"`
+	CreatedAt     time.Time     `bson:"createdAt" json:"createdAt"`
 }
 
 type BaseBlogInput struct {

@@ -10,7 +10,7 @@ import (
 
 type UserRepository interface {
 	GetUserByID(ctx context.Context) error
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*UserWithID, error)
 	RegisterUser(ctx context.Context) error
 	FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error)
 	UpdateUserPassword(ctx context.Context, password string, user bson.ObjectID) (bool, error)
@@ -30,8 +30,8 @@ func (r *MongoUserRepository) GetUserByID(ctx context.Context) error { return ni
 
 func (r *MongoUserRepository) RegisterUser(ctx context.Context) error { return nil }
 
-func (r *MongoUserRepository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
-	var user *User
+func (r *MongoUserRepository) GetUserByEmail(ctx context.Context, email string) (*UserWithID, error) {
+	var user *UserWithID
 
 	filter := bson.M{"email": email}
 

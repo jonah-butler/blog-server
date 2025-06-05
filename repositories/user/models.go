@@ -30,22 +30,27 @@ type UserSendEmailPost struct {
 
 // User Base
 type User struct {
-	ID           bson.ObjectID `bson:"_id" json:"_id"`
-	Email        string        `bson:"email" json:"email"`
-	Username     string        `bson:"username" json:"username"`
-	ProfileImage string        `bson:"profileImageLocation" json:"profileImageLocation"`
+	Email        string `bson:"email" json:"email"`
+	Username     string `bson:"username" json:"username"`
+	ProfileImage string `bson:"profileImageLocation" json:"profileImageLocation"`
+}
+
+// User base with ID field used in scenarios where ID is not necessary
+type UserWithID struct {
+	ID   bson.ObjectID `bson:"_id" json:"_id"`
+	User `bson:",inline"`
 }
 
 // User with Password field
 type UserWithPassword struct {
-	User     `bson:",inline"`
-	Password string `bson:"password" json:"password"`
+	UserWithID `bson:",inline"`
+	Password   string `bson:"password" json:"password"`
 }
 
 // User Response
 type UserResponse struct {
-	User  User   `json:"user"`
-	Token string `json:"token"`
+	User  UserWithID `json:"user"`
+	Token string     `json:"token"`
 }
 
 type UserPasswordResetResponse struct {
@@ -55,5 +60,5 @@ type UserPasswordResetResponse struct {
 // JWT
 type JWTClaims struct {
 	jwt.StandardClaims
-	User User `json:"user"`
+	User UserWithID `json:"user"`
 }

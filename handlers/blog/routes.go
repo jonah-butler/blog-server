@@ -22,6 +22,8 @@ func (h *BlogHandler) RegisterBlogRoutes(prefix string, server *http.ServeMux) {
 	server.HandleFunc("GET "+prefix+"/search/{query}", h.handleBlogSearch)
 	// lookup blog by slug
 	server.HandleFunc("GET "+prefix+"/{slug}", h.handleBlogBySlug)
+	// get published blogs by user
+	server.HandleFunc("GET "+prefix+"/user/{userID}", h.handleBlogsByUser)
 	// delete blog by id
 	server.HandleFunc("DELETE "+prefix+"/{id}", authmiddleware.BearerAuthMiddleware(h.handleDeleteBlog))
 	// update blog rating
