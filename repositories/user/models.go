@@ -1,6 +1,8 @@
 package user
 
 import (
+	"mime/multipart"
+
 	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -13,6 +15,13 @@ type UserLoginPost struct {
 
 type UserResetPasswordPost struct {
 	Email *string `json:"email"`
+}
+
+type UserUpdatePost struct {
+	Image         *multipart.FileHeader `bson:"-" form:"image"`
+	ImageBytes    []byte                `bson:"-" form:"imageData"`
+	ImageLocation string                `bson:"profileImageLocation"`
+	ImageKey      string                `bson:"profileImageKey"`
 }
 
 type UserNewPasswordPost struct {

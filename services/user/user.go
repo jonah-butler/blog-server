@@ -3,8 +3,10 @@ package user
 import (
 	prr "blog-api/repositories/passwordreset"
 	r "blog-api/repositories/user"
+	"blog-api/s3"
 	es "blog-api/services/email"
 	prs "blog-api/services/passwordreset"
+	u "blog-api/utilities"
 	"context"
 	"errors"
 	"fmt"
@@ -179,4 +181,35 @@ func (s *UserService) SendEmailToUser(ctx context.Context, emailData *r.UserSend
 	}
 
 	return nil
+}
+
+func (s *UserService) UpdateUser(ctx context.Context, input *r.UserUpdatePost) (*r.User, error) {
+	var user *r.User
+	// short circuit if no image data
+	if input.Image == nil || input.Image.Size == 0 {
+		return user, nil
+	}
+
+	authorId, ok := u.GetAuthorID(ctx)
+	if !ok {
+		return user, fmt.Errorf("failed to get author ID")
+	}
+
+	key := s3.BuildS3Key(s3.USER_PROFILE, authorId, input.Image.Filename)
+
+	imageUri, err := s3.UploadToS3New(input.Image, input.ImageBytes, key)
+	if err != nil {
+		return user, err
+	}
+
+	// set filename and url
+	input.ImageLocation = imageUri
+	input.ImageKey = input.Image.Filename
+
+	user, err = s.userRepo.UpdateUser(ctx, authorId, input)
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }

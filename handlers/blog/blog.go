@@ -259,7 +259,7 @@ func (h *BlogHandler) handleBlogLike(w http.ResponseWriter, req *http.Request) {
 func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request) {
 	req.Body = http.MaxBytesReader(w, req.Body, 32<<20+512)
 
-	isValidMime := ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
+	isValidMime := u.ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
 	if !isValidMime {
 		error := fmt.Errorf("invalid content type")
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
@@ -273,7 +273,7 @@ func (h *BlogHandler) handleUpdatetBlog(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	input, err := ParseMultiPartFormBlogUpdate(reader)
+	input, err := u.ParseMultiPartFormBlogUpdate(reader)
 	if err != nil {
 		error := fmt.Errorf("error parsing mutlipart form: %v", err)
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
@@ -318,9 +318,9 @@ func (h *BlogHandler) handleSlugValidation(w http.ResponseWriter, req *http.Requ
 // use required fields on a struct to ensure the
 // new document has all the fields it requires
 func (h *BlogHandler) handleNewBlog(w http.ResponseWriter, req *http.Request) {
-	req.Body = http.MaxBytesReader(w, req.Body, 32<<20+512)
+	req.Body = http.MaxBytesReader(w, req.Body, 32*u.MB)
 
-	isValidMime := ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
+	isValidMime := u.ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
 	if !isValidMime {
 		error := fmt.Errorf("invalid content type")
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
@@ -334,7 +334,7 @@ func (h *BlogHandler) handleNewBlog(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	input, err := ParseMultiPartFormBlogCreate(reader)
+	input, err := u.ParseMultiPartFormBlogCreate(reader)
 	if err != nil {
 		error := fmt.Errorf("error parsing mutlipart form: %v", err)
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)

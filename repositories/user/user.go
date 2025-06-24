@@ -6,6 +6,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type UserRepository interface {
@@ -14,6 +15,7 @@ type UserRepository interface {
 	RegisterUser(ctx context.Context) error
 	FindUser(ctx context.Context, payload UserLoginPost) (*UserWithPassword, error)
 	UpdateUserPassword(ctx context.Context, password string, user bson.ObjectID) (bool, error)
+	UpdateUser(ctx context.Context, authorId string, input *UserUpdatePost) (*User, error)
 }
 
 type MongoUserRepository struct {
@@ -78,4 +80,41 @@ func (r *MongoUserRepository) UpdateUserPassword(ctx context.Context, password s
 	}
 
 	return result.ModifiedCount == 1, nil
+}
+
+func (r *MongoUserRepository) UpdateUser(ctx context.Context, authorId string, input *UserUpdatePost) (*User, error) {
+	var user *User
+
+	hexAuthorID, err := bson.ObjectIDFromHex(authorId)
+	if err != nil {
+		return user, err
+	}
+
+	filter := bson.M{
+		"_id": hexAuthorID,
+	}
+
+	updateFields := bson.M{}
+
+	if input.ImageKey != "" {
+		updateFields["profileImageKey"] = input.ImageKey
+	}
+
+	if input.ImageLocation != "" {
+		updateFields["profileImageLocation"] = input.ImageLocation
+	}
+
+	update := bson.M{"$set": updateFields}
+
+	err = r.collection.FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&user)
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }

@@ -166,3 +166,53 @@ func (h *UserHandler) sendEmail(w http.ResponseWriter, req *http.Request) {
 
 	u.WriteJSON(w, http.StatusOK, u.EmptyResponse())
 }
+
+func (h *UserHandler) updateUser(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	authorID, ok := u.GetAuthorID(ctx)
+	if !ok {
+		error := fmt.Errorf("failed to retrieve author ID")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	// ensure id path values matches user id in token
+	if authorID != req.PathValue("userID") {
+		error := fmt.Errorf("author IDs do not match")
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	req.Body = http.MaxBytesReader(w, req.Body, 32*u.MB)
+
+	isValidMime := u.ValidateRequestMime(req.Header.Get("Content-Type"), "multipart/form-data")
+	if !isValidMime {
+		error := fmt.Errorf("invalid content type")
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	reader, err := req.MultipartReader()
+	if err != nil {
+		error := fmt.Errorf("error reading mutlipart form: %v", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	input, err := u.ParseMultiPartFormUserUpdate(reader)
+	if err != nil {
+		error := fmt.Errorf("failed to parse form %s", err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	user, err := h.userService.UpdateUser(ctx, input)
+	if err != nil {
+		error := fmt.Errorf("failed to update user %s", err)
+		u.WriteJSONErr(w, http.StatusBadRequest, error)
+		return
+	}
+
+	u.WriteJSON(w, http.StatusOK, user)
+}

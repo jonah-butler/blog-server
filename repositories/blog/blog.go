@@ -670,7 +670,6 @@ func (r *MongoBlogRepository) UpdateBlog(ctx context.Context, input *UpdateBlogI
 		updateFields["title"] = input.Title
 	}
 
-	fmt.Println("image location: ", input.ImageLocation)
 	if input.ImageLocation != "" {
 		updateFields["featuredImageLocation"] = input.ImageLocation
 	}
