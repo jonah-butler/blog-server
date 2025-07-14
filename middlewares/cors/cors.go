@@ -8,6 +8,7 @@ import (
 func ValidateCors(next http.Handler) http.Handler {
 	allowedOrigins := map[string]struct{}{
 		"https://www.jonahbutler.dev":        {},
+		"https://jonahbutler.dev":            {},
 		"https://local.jonahbutler.dev:8080": {},
 	}
 
