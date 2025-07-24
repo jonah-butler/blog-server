@@ -34,7 +34,7 @@ type UserSendEmailPost struct {
 	From    string `json:"from"`
 	Message string `json:"message"`
 	Subject string `json:"subject"`
-	To      string `json:"to"`
+	To      string `json:"to"` // used in the lookup of a verified user before sending the email
 }
 
 // User Base

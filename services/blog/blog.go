@@ -1,9 +1,9 @@
 package blog
 
 import (
+	"blog-api/aws/s3"
 	ck "blog-api/contextkeys"
 	r "blog-api/repositories/blog"
-	"blog-api/s3"
 	"context"
 	"fmt"
 	"os"

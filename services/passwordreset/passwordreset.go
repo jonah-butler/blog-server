@@ -2,12 +2,8 @@ package passwordreset
 
 import (
 	prr "blog-api/repositories/passwordreset"
-	es "blog-api/services/email"
 	"context"
-	"os"
 
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -41,14 +37,14 @@ func (s *PasswordResetService) DeletePasswordResetEntry(ctx context.Context, has
 	return s.passwordResetRepo.DeletePasswordResetEntry(ctx, hash, user)
 }
 
-func (s *PasswordResetService) SendEmail(payload *es.SendgridPayload) error {
-	message := mail.NewSingleEmail(payload.From, payload.Subject, payload.To, payload.PlainText, payload.HTMLText)
+// func (s *PasswordResetService) SendEmail(payload *es.SendgridPayload) error {
+// 	message := mail.NewSingleEmail(payload.From, payload.Subject, payload.To, payload.PlainText, payload.HTMLText)
 
-	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
-	_, err := client.Send(message)
-	if err != nil {
-		return err
-	}
+// 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+// 	_, err := client.Send(message)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

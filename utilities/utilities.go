@@ -4,6 +4,7 @@ import (
 	ck "blog-api/contextkeys"
 	br "blog-api/repositories/blog"
 	ur "blog-api/repositories/user"
+	"time"
 
 	"bytes"
 	"context"
@@ -185,4 +186,14 @@ func ParseMultiPartFormUserUpdate(reader *multipart.Reader) (*ur.UserUpdatePost,
 	input := &ur.UserUpdatePost{}
 	err := ParseMultiPartForm(reader, input)
 	return input, err
+}
+
+func EvaluatedElapsedTime(timestamp time.Time, hours int) bool {
+	now := time.Now()
+
+	elapsed := now.Sub(timestamp)
+
+	hoursElapsed := elapsed.Hours()
+
+	return (hoursElapsed > 0 && hoursElapsed < float64(hours))
 }

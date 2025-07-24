@@ -1,6 +1,7 @@
 package user
 
 import (
+	e "blog-api/aws/ses"
 	r "blog-api/repositories/user"
 	s "blog-api/services/user"
 	u "blog-api/utilities"
@@ -158,9 +159,15 @@ func (h *UserHandler) sendEmail(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := h.userService.SendEmailToUser(req.Context(), emailData)
+	input, err := e.PrepareContactEmail(emailData)
 	if err != nil {
-		error := fmt.Errorf("failed to send email %s", err)
+		error := fmt.Errorf("failed to prepare contact email %s: ", err)
+		u.WriteJSONErr(w, http.StatusInternalServerError, error)
+	}
+
+	err = e.SendEmail(input)
+	if err != nil {
+		error := fmt.Errorf("failed to send email %s: ", err)
 		u.WriteJSONErr(w, http.StatusInternalServerError, error)
 	}
 

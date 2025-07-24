@@ -1,10 +1,10 @@
 package user
 
 import (
+	"blog-api/aws/s3"
+	email "blog-api/aws/ses"
 	prr "blog-api/repositories/passwordreset"
 	r "blog-api/repositories/user"
-	"blog-api/s3"
-	es "blog-api/services/email"
 	prs "blog-api/services/passwordreset"
 	u "blog-api/utilities"
 	"context"
@@ -19,14 +19,12 @@ import (
 type UserService struct {
 	userRepo             r.UserRepository
 	passwordResetService prs.PasswordResetService
-	emailService         es.EmailService
 }
 
-func NewUserService(userRepo r.UserRepository, passwordResetService prs.PasswordResetService, emailService es.EmailService) *UserService {
+func NewUserService(userRepo r.UserRepository, passwordResetService prs.PasswordResetService) *UserService {
 	return &UserService{
 		userRepo:             userRepo,
 		passwordResetService: passwordResetService,
-		emailService:         emailService,
 	}
 }
 
@@ -100,12 +98,12 @@ func (s *UserService) UserResetPassword(ctx context.Context, payload r.UserReset
 		return response, err
 	}
 
-	message, err := s.emailService.PreparePasswordResetData(token, user.Email)
+	input, err := email.PreparePasswordResetEmail(token, user.Email)
 	if err != nil {
 		return response, err
 	}
 
-	err = s.passwordResetService.SendEmail(message)
+	err = email.SendEmail(input)
 	if err != nil {
 		return response, err
 	}
@@ -122,7 +120,7 @@ func (s *UserService) ValidatePasswordReset(ctx context.Context, payload *r.User
 	}
 
 	// evaluate createAt and revoke stale token
-	isFresh := s.emailService.EvaluatedElapsedTime(meta.CreatedAt, 1)
+	isFresh := u.EvaluatedElapsedTime(meta.CreatedAt, 1)
 	if !isFresh {
 		_, err := s.passwordResetService.DeletePasswordResetEntry(ctx, meta.Hash, meta.User)
 		if err != nil {
@@ -160,28 +158,28 @@ func (s *UserService) UpdateUserPassword(ctx context.Context, password string, u
 	return didUpdate, nil
 }
 
-func (s *UserService) SendEmailToUser(ctx context.Context, emailData *r.UserSendEmailPost) error {
-	user, err := s.userRepo.GetUserByEmail(ctx, emailData.To)
-	if err != nil {
-		return err
-	}
+// func (s *UserService) SendEmailToUser(ctx context.Context, emailData *r.UserSendEmailPost) error {
+// 	user, err := s.userRepo.GetUserByEmail(ctx, emailData.To)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if user == nil {
-		return fmt.Errorf("the provided email address is not a supported account")
-	}
+// 	if user == nil {
+// 		return fmt.Errorf("the provided email address is not a supported account")
+// 	}
 
-	email, err := s.emailService.PrepareContactEmail(emailData)
-	if err != nil {
-		return err
-	}
+// 	email, err := s.emailService.PrepareContactEmail(emailData)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	err = s.passwordResetService.SendEmail(email)
-	if err != nil {
-		return err
-	}
+// 	err = s.passwordResetService.SendEmail(email)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (s *UserService) UpdateUser(ctx context.Context, input *r.UserUpdatePost) (*r.User, error) {
 	var user *r.User
