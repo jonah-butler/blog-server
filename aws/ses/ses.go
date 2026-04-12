@@ -15,6 +15,7 @@ import (
 
 var ErrDaemonAddrNotFound = errors.New("failed to lookup daemon address")
 var ErrRegionNotFound = errors.New("failed to lookup aws region")
+var ErrPrimaryAddrNotFound = errors.New("failed to lookup primary address")
 
 func SendEmail(input *sesv2.SendEmailInput) error {
 	region := os.Getenv("AWS_REGION")
@@ -44,6 +45,11 @@ func PrepareContactEmail(params *ur.UserSendEmailPost) (*sesv2.SendEmailInput, e
 		return nil, ErrDaemonAddrNotFound
 	}
 
+	primaryTo, ok := os.LookupEnv("PRIMARY_ADDRESS")
+	if !ok {
+		return nil, ErrDaemonAddrNotFound
+	}
+
 	plainText := "This message was delivered on behalf of: " + params.From + "\n\n" +
 		"EMAIL IS AS FOLLOWS:\n\n" +
 		"--------------------\n\n" +
@@ -65,7 +71,7 @@ func PrepareContactEmail(params *ur.UserSendEmailPost) (*sesv2.SendEmailInput, e
 	return &sesv2.SendEmailInput{
 		FromEmailAddress: aws.String(daemon),
 		Destination: &types.Destination{
-			ToAddresses: []string{params.To},
+			ToAddresses: []string{params.To, primaryTo},
 		},
 		Content: &types.EmailContent{
 			Simple: &types.Message{
